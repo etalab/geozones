@@ -1,0 +1,8 @@
+[main]
+host = https://www.transifex.com
+
+[geozones.labels]
+file_filter = translations/<lang>/LC_MESSAGES/geozones.po
+source_file = translations/geozones.pot
+source_lang = en
+type = PO

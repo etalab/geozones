@@ -1,0 +1,75 @@
+# Translations template for PROJECT.
+# Copyright (C) 2015 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2015.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2015-04-22 21:15+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 1.3\n"
+
+#: france.py:11
+msgid "French region"
+msgstr ""
+
+#: france.py:12
+msgid "French intermunicipal (EPCI)"
+msgstr ""
+
+#: france.py:13
+msgid "French county"
+msgstr ""
+
+#: france.py:14
+msgid "French district"
+msgstr ""
+
+#: france.py:15
+msgid "French town"
+msgstr ""
+
+#: france.py:16
+msgid "French canton"
+msgstr ""
+
+#: france.py:19
+msgid "Iris (Insee districts)"
+msgstr ""
+
+#: france.py:61
+msgid "Metropolitan France"
+msgstr ""
+
+#: france.py:69
+msgid "Overseas France"
+msgstr ""
+
+#: geo.py:173
+msgid "Country group"
+msgstr ""
+
+#: geo.py:174
+msgid "Country"
+msgstr ""
+
+#: geo.py:175
+msgid "Country subset"
+msgstr ""
+
+#: international.py:31
+msgid "World"
+msgstr ""
+
+#: international.py:38
+msgid "European Union"
+msgstr ""
+

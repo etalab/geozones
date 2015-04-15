@@ -19,6 +19,11 @@ lib64/
 parts/
 sdist/
 var/
+include/
+bin/
+shapely/
+local/
+share/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -45,7 +50,6 @@ coverage.xml
 
 # Translations
 *.mo
-*.pot
 
 # Django stuff:
 *.log

@@ -1,0 +1,76 @@
+# Translations template for PROJECT.
+# Copyright (C) 2015 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# 
+# Translators:
+# Axel Haustant, 2015
+msgid ""
+msgstr ""
+"Project-Id-Version: GeoZones\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2015-04-22 21:15+0200\n"
+"PO-Revision-Date: 2015-04-22 19:15+0000\n"
+"Last-Translator: Axel Haustant\n"
+"Language-Team: French (http://www.transifex.com/projects/p/geozones/language/fr/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 1.3\n"
+"Language: fr\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: france.py:11
+msgid "French region"
+msgstr "Région française"
+
+#: france.py:12
+msgid "French intermunicipal (EPCI)"
+msgstr "Intercommunalité française (EPCI)"
+
+#: france.py:13
+msgid "French county"
+msgstr "Département français"
+
+#: france.py:14
+msgid "French district"
+msgstr "Arrondissement français"
+
+#: france.py:15
+msgid "French town"
+msgstr "Ville française"
+
+#: france.py:16
+msgid "French canton"
+msgstr "Canton français"
+
+#: france.py:19
+msgid "Iris (Insee districts)"
+msgstr "Iris (Quartiers INSEE)"
+
+#: france.py:61
+msgid "Metropolitan France"
+msgstr "France métropolitaine"
+
+#: france.py:69
+msgid "Overseas France"
+msgstr "France d'outre-mer"
+
+#: geo.py:173
+msgid "Country group"
+msgstr "Groupe de pays"
+
+#: geo.py:174
+msgid "Country"
+msgstr "Pays"
+
+#: geo.py:175
+msgid "Country subset"
+msgstr "Sous-ensemble de pays"
+
+#: international.py:31
+msgid "World"
+msgstr "Monde"
+
+#: international.py:38
+msgid "European Union"
+msgstr "Union européenne"
