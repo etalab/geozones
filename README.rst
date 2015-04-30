@@ -240,6 +240,7 @@ Build
 - Better and lightweight DBPedia retrieval (using http://dbpedia.org/sparql)
 - Distribute GeoZone as a standalone python executable
 - Allow to execute a single postprocessor
+- Some quality check tools
 
 Fields
 ~~~~~~
@@ -256,10 +257,11 @@ Output
 - Translations as distributable JSON (as an alternative to the current PO/MO format)
 - Translations as Python package
 - Model versionning
-- Statistics in levels
+- Statistics/coverages in levels
 
 Web interface
 ~~~~~~~~~~~~~
 
 - Querying
 - Only fetch zones for viewport (less intensive for lower layers)
+- A full web-service as a separate project
