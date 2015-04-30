@@ -241,8 +241,7 @@ def extract_french_canton(polygon):
     }
 
 
-# TODO use real URL
-@iris.extractor('http://www.data.dev/s/resources/base-iris/20150426-173045/iris-2013-01-01.zip')
+@iris.extractor('https://www.data.gouv.fr/s/resources/contour-des-iris-insee-tout-en-un/20150428-161348/iris-2013-01-01.zip')
 def extract_iris(polygon):
     '''
     Extract French IrisBased on data from http://professionnels.ign.fr/contoursiris
