@@ -189,13 +189,20 @@ def dist(ctx, pretty, split, compress):
             filenames.append('levels.json')
 
     if compress:
+        filename = 'geozones-translations.tar.xz'
+        with ok('Compressing to {0}'.format(filename)):
+            with tarfile.open(filename, 'w:xz') as txz:
+                txz.add(join(ctx.obj['home'], 'translations'), 'translations')
+
         filename = 'geozones-split.tar.xz' if split else 'geozones.tar.xz'
         with ok('Compressing to {0}'.format(filename)):
             with tarfile.open(filename, 'w:xz') as txz:
                 for name in filenames:
                     txz.add(name)
+                # Add translations
+                txz.add(join(ctx.obj['home'], 'translations'), 'translations')
 
-    os.chdir(ctx.obj('home'))
+    os.chdir(ctx.obj['home'])
 
 
 @cli.command()
