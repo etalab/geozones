@@ -191,8 +191,8 @@ All in one task equivalent to:
 Serve a webinterface to explore the generated data.
 
 
-``info``
-~~~~~~~~
+``status``
+~~~~~~~~~~
 
 Display some useful informations and statistics
 
@@ -202,7 +202,7 @@ Commands are chainables so you can write:
 .. code-block:: shell
 
     # Perform all tasks from download to distibution
-    $ ./geozones.py download load -d aggregate postprocess dist dist -s info
+    $ ./geozones.py download load -d aggregate postprocess dist dist -s status
 
 
 Reused datasets
