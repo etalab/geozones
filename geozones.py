@@ -227,7 +227,7 @@ def full(ctx, drop, pretty, split, compress):
 
 @cli.command()
 @click.pass_context
-def info(ctx):
+def status(ctx):
     '''Display some informations and statistics'''
     title('Current status')
 

@@ -263,7 +263,7 @@ def extract_iris(polygon):
     }
 
 
-@town.postprocessor('https://www.data.gouv.fr/s/resources/base-officielle-des-codes-postaux/community/20150308-152148/code_postaux_v201410_corr.csv')
+@town.postprocessor('https://www.data.gouv.fr/s/resources/base-officielle-des-codes-postaux/20151009-153255/base_officielle_codes_postaux_-_09102015.csv')
 def process_postal_codes(db, filename):
     '''
     Extract postal codes from https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/
@@ -275,7 +275,7 @@ def process_postal_codes(db, filename):
         # skip header
         next(reader, None)
         for insee, _, postal, _ in reader:
-            ops = {'$set': {'keys.postal': postal}}
+            ops = {'$addToSet': {'keys.postal': postal}}
             if db.find_one_and_update({'level': town.id, 'code': insee}, ops):
                 processed += 1
     success('Processed {0} french postal codes'.format(processed))
