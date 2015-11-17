@@ -3,22 +3,18 @@ import re
 from string import Template
 
 
-RE_WIKIPEDIA = re.compile(r'https?://(?P<namespace>\w+\.)?wikipedia\.org/wiki/(?P<resource>.+)$')
-DBPEDIA_POPULATION = (
-    'http://fr.dbpedia.org/property/population',
-    'http://dbpedia.org/ontology/populationTotal',
-)
-
-DBPEDIA_AREA = (
-    'http://fr.dbpedia.org/property/superficie',
-    'http://dbpedia.org/ontology/area'
-)
-DBPEDIA_ONTOLOGIES = {
-    'population': DBPEDIA_POPULATION,
-    'area': DBPEDIA_AREA,
-}
+RE_WIKIPEDIA = re.compile(
+    r'https?://(?P<namespace>\w+\.)?wikipedia\.org/wiki/(?P<resource>.+)$')
 SPARQL_SERVER = 'http://dbpedia.inria.fr/sparql'
-SPARQL_TEMPLATE = Template('select * where {<$resource> <$ontology> ?$name}')
+# We want population and/or area from French DBPedia or
+# their international counterparts as fallbacks.
+SPARQL_TEMPLATE = Template('''SELECT ?population ?area WHERE {
+    {<$resource> <http://fr.dbpedia.org/property/population>|
+                 <http://dbpedia.org/ontology/populationTotal> ?population}
+UNION
+    {<$resource> <http://fr.dbpedia.org/property/superficie>|
+                 <http://dbpedia.org/ontology/area> ?area}
+}''')
 
 
 class DBPedia(object):
@@ -39,15 +35,11 @@ class DBPedia(object):
         else:
             self.base_url = 'http://dbpedia.org'
 
-    def fetch(self, name):
+    def fetch_population_and_area(self):
         resource = '{base_url}/resource/{resource}'.format(
             base_url=self.base_url, resource=self.resource)
 
-        # First try the French attribute.
-        sparql_query = SPARQL_TEMPLATE.substitute(
-            resource=resource,
-            ontology=DBPEDIA_ONTOLOGIES[name][0],
-            name=name)
+        sparql_query = SPARQL_TEMPLATE.substitute(resource=resource)
         parameters = {
             'default-graph-uri': 'http://fr.dbpedia.org',
             'query': sparql_query,
@@ -56,18 +48,12 @@ class DBPedia(object):
         response = requests.get(SPARQL_SERVER, params=parameters)
         data = response.json()
         try:
-            return data['results']['bindings'][0][name]['value']
-        except IndexError:
-            pass
-
-        # Then fallback on the international one.
-        parameters['query'] = SPARQL_TEMPLATE.substitute(
-            resource=resource,
-            ontology=DBPEDIA_ONTOLOGIES[name][1],
-            name=name)
-        response = requests.get(SPARQL_SERVER, params=parameters)
-        data = response.json()
-        try:
-            return data['results']['bindings'][0][name]['value']
+            results = data['results']['bindings'][0]
         except IndexError:
             return
+        population_and_area = {}
+        if 'population' in results:
+            population_and_area['population'] = results['population']['value']
+        if 'area' in results:
+            population_and_area['area'] = results['area']['value']
+        return population_and_area
