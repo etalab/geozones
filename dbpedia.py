@@ -1,7 +1,20 @@
 import requests
 import re
+from string import Template
 
-RE_WIKIPEDIA = re.compile(r'https?://(?P<namespace>\w+\.)?wikipedia\.org/wiki/(?P<resource>.+)$')
+
+RE_WIKIPEDIA = re.compile(
+    r'https?://(?P<namespace>\w+\.)?wikipedia\.org/wiki/(?P<resource>.+)$')
+SPARQL_SERVER = 'http://dbpedia.inria.fr/sparql'
+# We want population and/or area from French DBPedia or
+# their international counterparts as fallbacks.
+SPARQL_TEMPLATE = Template('''SELECT ?population ?area WHERE {
+    {<$resource> <http://fr.dbpedia.org/property/population>|
+                 <http://dbpedia.org/ontology/populationTotal> ?population}
+UNION
+    {<$resource> <http://fr.dbpedia.org/property/superficie>|
+                 <http://dbpedia.org/ontology/area> ?area}
+}''')
 
 
 class DBPedia(object):
@@ -21,20 +34,26 @@ class DBPedia(object):
             self.base_url = 'http://{0}.dbpedia.org'.format(namespace)
         else:
             self.base_url = 'http://dbpedia.org'
-        self.json = None
 
-    def fetch(self):
-        url = '{base_url}/data/{resource}.json'.format(**self.__dict__)
-        response = requests.get(url)
+    def fetch_population_and_area(self):
+        resource = '{base_url}/resource/{resource}'.format(
+            base_url=self.base_url, resource=self.resource)
+
+        sparql_query = SPARQL_TEMPLATE.substitute(resource=resource)
+        parameters = {
+            'default-graph-uri': 'http://fr.dbpedia.org',
+            'query': sparql_query,
+            'format': 'json'
+        }
+        response = requests.get(SPARQL_SERVER, params=parameters)
         data = response.json()
-        key = '{base_url}/resource/{resource}'.format(**self.__dict__)
-        self.json = data.get(key)
-        return self.json
-
-    def __call__(self, *relations):
-        if not self.json and not self.fetch():
+        try:
+            results = data['results']['bindings'][0]
+        except IndexError:
             return
-        for relation in relations:
-            data = self.json.get(relation)
-            if data:
-                return data
+        population_and_area = {}
+        if 'population' in results:
+            population_and_area['population'] = results['population']['value']
+        if 'area' in results:
+            population_and_area['area'] = results['area']['value']
+        return population_and_area

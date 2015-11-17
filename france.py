@@ -9,15 +9,6 @@ from dbpedia import DBPedia
 
 _ = lambda s: s
 
-DBPEDIA_POPULATION = (
-    'http://fr.dbpedia.org/property/population',
-    'http://dbpedia.org/ontology/populationTotal',
-)
-
-DBPEDIA_AREA = (
-    'http://fr.dbpedia.org/property/superficie',
-    'http://dbpedia.org/ontology/area'
-)
 
 region = Level('fr/region', _('French region'), country)
 epci = Level('fr/epci', _('French intermunicipal (EPCI)'), region)
@@ -555,20 +546,10 @@ def fetch_missing_data_from_dbpedia(db, filename):
         ]}, no_cursor_timeout=True):
 
         try:
-            values = {}
             dbpedia = DBPedia(zone['wikipedia'])
-
-            population = dbpedia(*DBPEDIA_POPULATION)
-            population = population[0].get('value') if population else None
-            if population:
-                values['population'] = population
-
-            area = dbpedia(*DBPEDIA_AREA)
-            area = area[0].get('value') if area else None
-            if area:
-                values['area'] = area
-
-            if values and db.find_one_and_update({'_id': zone['_id']}, {'$set': values}):
+            population_and_area = dbpedia.fetch_population_and_area()
+            if population_and_area and db.find_one_and_update(
+                    {'_id': zone['_id']}, {'$set': population_and_area}):
                 processed += 1
         except Exception as e:
             warning('Unable to fetch DBPedia for {0}: {1}', zone['_id'], e)
