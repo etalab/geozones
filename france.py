@@ -9,15 +9,6 @@ from dbpedia import DBPedia
 
 _ = lambda s: s
 
-DBPEDIA_POPULATION = (
-    'http://fr.dbpedia.org/property/population',
-    'http://dbpedia.org/ontology/populationTotal',
-)
-
-DBPEDIA_AREA = (
-    'http://fr.dbpedia.org/property/superficie',
-    'http://dbpedia.org/ontology/area'
-)
 
 region = Level('fr/region', _('French region'), country)
 epci = Level('fr/epci', _('French intermunicipal (EPCI)'), region)
@@ -558,13 +549,11 @@ def fetch_missing_data_from_dbpedia(db, filename):
             values = {}
             dbpedia = DBPedia(zone['wikipedia'])
 
-            population = dbpedia(*DBPEDIA_POPULATION)
-            population = population[0].get('value') if population else None
+            population = dbpedia.fetch('population')
             if population:
                 values['population'] = population
 
-            area = dbpedia(*DBPEDIA_AREA)
-            area = area[0].get('value') if area else None
+            area = dbpedia.fetch('area')
             if area:
                 values['area'] = area
 
