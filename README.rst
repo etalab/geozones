@@ -95,7 +95,16 @@ The following properties are exported in the GeoJSON output:
     Estimated/approximative area in km2 *(optional)*
 
 :wikipedia:
-    A Wikipedia/DBPedia reference *(optional)*
+    A Wikipedia reference *(optional)*
+
+:dbpedia:
+    A DBPedia reference *(optional)*
+
+:flag:
+    A DBPedia reference to a flag *(optional)*
+
+:blazon:
+    A DBPedia reference to a blazon *(optional)*
 
 :keys:
     A dictionnary of known keys/code for this zone
@@ -246,7 +255,6 @@ Fields
 ~~~~~~
 
 - Global weight = f(population, area, level)
-- Images/Logos/Shields/Flags: it would be nice to have the official pictogram associated with each zone (DBPedia)
 
 Output
 ~~~~~~

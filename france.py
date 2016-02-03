@@ -537,20 +537,22 @@ def fetch_missing_data_from_dbpedia(db, filename):
     info('Fetching DBPedia data')
     processed = 0
     for zone in db.find({
-        'wikipedia': {'$exists': True, '$ne': None},
-        '$or': [
-            {'population': None},
-            {'population': {'$exists': False}},
-            {'area': None},
-            {'area': {'$exists': False}},
-        ]}, no_cursor_timeout=True):
+            'wikipedia': {'$exists': True, '$ne': None},
+            '$or': [
+                {'population': None},
+                {'population': {'$exists': False}},
+                {'area': None},
+                {'area': {'$exists': False}},
+            ]
+            }, no_cursor_timeout=True):
 
-        try:
-            dbpedia = DBPedia(zone['wikipedia'])
-            population_and_area = dbpedia.fetch_population_and_area()
-            if population_and_area and db.find_one_and_update(
-                    {'_id': zone['_id']}, {'$set': population_and_area}):
-                processed += 1
-        except Exception as e:
-            warning('Unable to fetch DBPedia for {0}: {1}', zone['_id'], e)
+        dbpedia = DBPedia(zone['wikipedia'])
+        metadata = {
+            'dbpedia': dbpedia.resource_url,
+        }
+        metadata.update(dbpedia.fetch_population_or_area())
+        metadata.update(dbpedia.fetch_flag_or_blazon())
+        if db.find_one_and_update({'_id': zone['_id']},
+                                  {'$set': metadata}):
+            processed += 1
     success('Fetched DBPedia data for {0} zones'.format(processed))

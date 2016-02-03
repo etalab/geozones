@@ -15,8 +15,11 @@ def zone_to_feature(zone):
             'code': zone['code'],
             'name': unicodify(zone['name']),
             'wikipedia': unicodify(zone.get('wikipedia', '')) or None,
+            'dbpedia': unicodify(zone.get('dbpedia', '')) or None,
             'population': zone.get('population', None),
             'area': zone.get('area', None),
+            'flag': unicodify(zone.get('flag', '')) or None,
+            'blazon': unicodify(zone.get('blazon', '')) or None,
             'keys': zone.get('keys', {}),
             'parents': zone.get('parents', [])
         }
