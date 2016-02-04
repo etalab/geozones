@@ -184,7 +184,7 @@ def extract_french_region(polygon):
     }
 
 
-@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20150101-100m-shp.zip')
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip')
 def extract_french_town(polygon):
     '''
     Extract a french town informations from a MultiPolygon.
@@ -192,16 +192,31 @@ def extract_french_town(polygon):
     '''
     props = polygon['properties']
     code = props['insee'].lower()
-
-    # canton = props['code_cant']
-    # district = props['code_arr']
-    # county = props['code_dept']
-    # region = props['code_region']
     return {
         'code': code,
         'name': unicodify(props['nom']),
         'wikipedia': unicodify(props['wikipedia']),
-        'area': int(props['surf_m2']) / 10**6,
+        'area': int(props['surf_ha']),
+        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+        'keys': {
+            'insee': code,
+        }
+    }
+
+
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-municipaux-20160128-shp.zip')
+def extract_french_arrondissements(polygon):
+    '''
+    Extract a french arrondissements informations from a MultiPolygon.
+    Based on data from http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    '''
+    props = polygon['properties']
+    code = props['insee'].lower()
+    return {
+        'code': code,
+        'name': unicodify(props['nom']),
+        'wikipedia': unicodify(props['wikipedia']),
+        'area': int(props['surf_ha']),
         'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
         'keys': {
             'insee': code,
@@ -288,8 +303,9 @@ def attach_epci(db, filename):
             # region = row['region']
             # epci_region[siren] = region
             epci_id = 'fr/epci/{0}'.format(siren)
-            if db.find_one_and_update({'level': town.id, 'code': insee},
-                {'$addToSet': {'parents': epci_id}}):
+            if db.find_one_and_update(
+                    {'level': town.id, 'code': insee},
+                    {'$addToSet': {'parents': epci_id}}):
                 processed += 1
     success('Attached {0} french town to their EPCI'.format(processed))
 
@@ -352,25 +368,27 @@ def process_insee_cog(db, filename):
                     if district_id not in districts:
                         districts[district_id] = [region_id, county_id]
 
-                if db.find_one_and_update({'level': town.id, 'code': insee_code},
-                    {'$addToSet': {'parents': {'$each': parents}}}):
+                if db.find_one_and_update(
+                        {'level': town.id, 'code': insee_code},
+                        {'$addToSet': {'parents': {'$each': parents}}}):
                     processed += 1
-                # print(' - '.join((region_code, county_code, district_code, town_code, insee_code)))
     success('Attached {0} french towns to their parents'.format(processed))
 
     processed = 0
     for district_id, parents in districts.items():
-        if db.find_one_and_update({'_id': district_id},
-            {'$addToSet': {
-                'parents': {'$each': parents},
-            }}):
+        if db.find_one_and_update(
+                {'_id': district_id},
+                {'$addToSet': {
+                    'parents': {'$each': parents},
+                }}):
             processed += 1
     success('Attached {0} french districts to their parents'.format(processed))
 
     processed = 0
     for county_id, parent in counties.items():
-        if db.find_one_and_update({'_id': county_id},
-            {'$addToSet': {'parents': parent}}):
+        if db.find_one_and_update(
+                {'_id': county_id},
+                {'$addToSet': {'parents': parent}}):
             processed += 1
     success('Attached {0} french counties to their parents'.format(processed))
 
@@ -381,7 +399,8 @@ def town_with_districts(db, filename):
     paris = db.find_one({'_id': 'fr/town/75056'})
     parents = paris['parents']
     parents.append(paris['_id'])
-    result = db.update_many({'_id': {'$in': PARIS_DISTRICTS}},
+    result = db.update_many(
+        {'_id': {'$in': PARIS_DISTRICTS}},
         {'$addToSet': {'parents': {'$each': parents}}})
     success('Attached {0} districts to Paris'.format(result.modified_count))
 
@@ -389,7 +408,8 @@ def town_with_districts(db, filename):
     marseille = db.find_one({'_id': 'fr/town/13055'})
     parents = marseille['parents']
     parents.append(marseille['_id'])
-    result = db.update_many({'_id': {'$in': MARSEILLE_DISTRICTS}},
+    result = db.update_many(
+        {'_id': {'$in': MARSEILLE_DISTRICTS}},
         {'$addToSet': {'parents': {'$each': parents}}})
     success('Attached {0} districts to Marseille'.format(result.modified_count))
 
@@ -397,7 +417,8 @@ def town_with_districts(db, filename):
     lyon = db.find_one({'_id': 'fr/town/69123'})
     parents = lyon['parents']
     parents.append(lyon['_id'])
-    result = db.update_many({'_id': {'$in': LYON_DISTRICTS}},
+    result = db.update_many(
+        {'_id': {'$in': LYON_DISTRICTS}},
         {'$addToSet': {'parents': {'$each': parents}}})
     success('Attached {0} districts to Lyon'.format(result.modified_count))
 
@@ -481,24 +502,32 @@ def attach_and_clean_iris(db, filename):
 
 @county.postprocessor()
 def compute_county_area_and_population(db, filename):
-    info('Computing french counties areas and population by aggreagation')
+    info('Computing french counties areas and population by aggregation')
     processed = 0
     pipeline = [
         {'$match': {'level': town.id}},
         {'$unwind': '$parents'},
         {'$match': {'parents': {'$regex': county.id}}},
-        {'$group': {'_id': '$parents', 'area': {'$sum': '$area'}, 'population': {'$sum': '$population'}}}
+        {'$group': {
+            '_id': '$parents',
+            'area': {'$sum': '$area'},
+            'population': {'$sum': '$population'}
+        }}
     ]
     for result in db.aggregate(pipeline):
-        if db.find_one_and_update({'_id': result['_id']},
-            {'$set': {'area': result['area'], 'population': result['population']}}):
+        if db.find_one_and_update(
+                {'_id': result['_id']},
+                {'$set': {
+                    'area': result['area'],
+                    'population': result['population']
+                }}):
             processed += 1
     success('Computed area and population for {0} french counties'.format(processed))
 
 
 @region.postprocessor()
 def compute_region_population(db, filename):
-    info('Computing french regions population by aggreagation')
+    info('Computing french regions population by aggregation')
     processed = 0
     pipeline = [
         {'$match': {'level': town.id}},
@@ -508,15 +537,16 @@ def compute_region_population(db, filename):
     ]
     for result in db.aggregate(pipeline):
         if result.get('population'):
-            if db.find_one_and_update({'_id': result['_id']},
-                {'$set': {'population': result['population']}}):
+            if db.find_one_and_update(
+                    {'_id': result['_id']},
+                    {'$set': {'population': result['population']}}):
                 processed += 1
     success('Computed population for {0} french regions'.format(processed))
 
 
 @district.postprocessor()
 def compute_district_population(db, filename):
-    info('Computing french district population by aggreagation')
+    info('Computing french district population by aggregation')
     processed = 0
     pipeline = [
         {'$match': {'level': town.id}},
@@ -526,8 +556,9 @@ def compute_district_population(db, filename):
     ]
     for result in db.aggregate(pipeline):
         if result.get('population'):
-            if db.find_one_and_update({'_id': result['_id']},
-                {'$set': {'population': result['population']}}):
+            if db.find_one_and_update(
+                    {'_id': result['_id']},
+                    {'$set': {'population': result['population']}}):
                 processed += 1
     success('Computed population for {0} french districts'.format(processed))
 

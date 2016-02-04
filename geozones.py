@@ -34,7 +34,8 @@ def DB():
 
 @click.group(chain=True, context_settings=CONTEXT_SETTINGS)
 @click.option('-l', '--level', multiple=True, help='Limits to given levels')
-@click.option('-H', '--home', envvar='GEOZONES_HOME', help='Specify GeoZones working home')
+@click.option('-H', '--home', envvar='GEOZONES_HOME',
+              help='Specify GeoZones working home')
 @click.pass_context
 def cli(ctx, level, home):
     if home:
@@ -217,7 +218,6 @@ def full(ctx, drop, pretty, split, compress):
 
     Execute all operations from download to dist
     '''
-
     ctx.invoke(download)
     ctx.invoke(load, drop=drop)
     ctx.invoke(aggregate)
@@ -250,7 +250,7 @@ def status(ctx):
 
     section('coverage')
     zones = DB()
-    total =  0
+    total = 0
     properties = ('population', 'area', 'wikipedia')
     totals = dict((prop, 0) for prop in properties)
 
