@@ -269,7 +269,7 @@ def extract_iris(polygon):
     }
 
 
-@town.postprocessor('https://www.data.gouv.fr/s/resources/base-officielle-des-codes-postaux/20151009-153255/base_officielle_codes_postaux_-_09102015.csv')
+@town.postprocessor('http://datanova.legroupe.laposte.fr/explore/dataset/laposte_hexasmal/download/?format=csv&timezone=Europe/Berlin&use_labels_for_header=true')
 def process_postal_codes(db, filename):
     '''
     Extract postal codes from https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/
@@ -280,7 +280,7 @@ def process_postal_codes(db, filename):
         reader = csv.reader(csvfile, delimiter=';')
         # skip header
         next(reader, None)
-        for insee, _, postal, _ in reader:
+        for insee, _, postal, _, _ in reader:
             ops = {'$addToSet': {'keys.postal': postal}}
             if db.find_one_and_update({'level': town.id, 'code': insee}, ops):
                 processed += 1
