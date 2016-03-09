@@ -7,7 +7,7 @@ from fiona.crs import to_string
 from shapely.geometry import shape, MultiPolygon
 from shapely.ops import cascaded_union
 
-from tools import warning, error, info, success
+from tools import warning, error, info, success, extract_meta_from_headers
 
 
 class Level(object):
@@ -173,8 +173,11 @@ class Level(object):
     def postprocess(self, workdir, db):
         '''Perform postprocessing'''
         for url, processor in self.postprocessors:
-            filename = join(workdir, basename(url)) if url else None
-            processor(db, filename)
+            filepath = None
+            if url:
+                filename, _ = extract_meta_from_headers(url)
+                filepath = join(workdir, filename)
+            processor(db, filepath)
 
 
 # Force translatables string extraction

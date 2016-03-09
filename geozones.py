@@ -4,13 +4,16 @@ import os
 import tarfile
 
 from os.path import basename, join, exists
-from urllib.request import FancyURLopener, urlopen, Request
+from urllib.request import FancyURLopener
 
 import click
 from pymongo import MongoClient, ASCENDING
 
 import geojson
-from tools import info, success, title, ok, error, section, warning
+from tools import (
+    info, success, title, ok, error, section, warning,
+    extract_meta_from_headers
+)
 from geo import root
 
 # Importing levels modules in order (international first)
@@ -64,15 +67,9 @@ def download(ctx):
     urls = (level.urls for level in ctx.obj['levels'] if level.urls)
     urls = set([url for lst in urls for url in lst])
     for url in urls:
-        filename = basename(url).strip()
-
+        info('Dealing with {0}'.format(url))
+        filename, size = extract_meta_from_headers(url)
         info('Downloading {0}'.format(filename))
-
-        req = Request(url, method='HEAD')
-        req.add_header('Accept-Encoding', 'identity')
-        response = urlopen(req)
-        size = int(response.headers['Content-Length'])
-
         with click.progressbar(length=size) as bar:
             def reporthook(blocknum, blocksize, totalsize):
                 read = blocknum * blocksize
