@@ -2,14 +2,14 @@
 import json
 import os
 import tarfile
-
 from os.path import basename, join, exists
 from urllib.request import FancyURLopener
 
 import click
 from pymongo import MongoClient, ASCENDING
-
 import geojson
+import msgpack
+
 from tools import (
     info, success, title, ok, error, section, warning,
     extract_meta_from_headers
@@ -144,47 +144,69 @@ def postprocess(ctx):
 @click.option('-p', '--pretty', is_flag=True)
 @click.option('-s', '--split', is_flag=True)
 @click.option('-c/-nc', '--compress/--no-compress', default=True)
-def dist(ctx, pretty, split, compress):
-    '''Dump a distributable GeoJSON file'''
-    title('Dumping data to GeoJSON')
-    zones = DB()
+@click.option('-r', '--serialization', default='json',
+              type=click.Choice(['json', 'msgpack']))
+def dist(ctx, pretty, split, compress, serialization):
+    '''Dump a distributable file'''
+    title('Dumping data to {serialization}'.format(
+        serialization=serialization))
+    geozones = DB()
     filenames = []
 
     if not exists(DIST_DIR):
         os.makedirs(DIST_DIR)
 
     os.chdir(DIST_DIR)
+    level_ids = [l.id for l in ctx.obj['levels']]
 
     if split:
-        for level in ctx.obj['levels']:
-            filename = 'zones-{0}.json'.format(level.id.replace('/', '-'))
-            with ok('Generating {0}'.format(filename)):
-                with open(filename, 'w') as out:
-                    data = zones.find({'level': level.id})
-                    geojson.dump(data, out, pretty=pretty)
+        for level_id in level_ids:
+            filename = 'zones-{level}.{serialization}'.format(
+                level=level_id.replace('/', '-'), serialization=serialization)
+            with ok('Generating {filename}'.format(filename=filename)):
+                zones = geozones.find({'level': level_id})
+                if serialization == 'json':
+                    with open(filename, 'w') as out:
+                        geojson.dump(zones, out, pretty=pretty)
+                else:
+                    packer = msgpack.Packer(use_bin_type=True)
+                    with open(filename, 'wb') as out:
+                        for zone in zones:
+                            out.write(packer.pack(zone))
             filenames.append(filename)
     else:
-        with ok('Generating zones.json'):
-            with open('zones.json', 'w') as out:
-                levels = [l.id for l in ctx.obj['levels']]
-                data = zones.find({'level': {'$in': levels}})
-                geojson.dump(data, out, pretty=pretty)
-        filenames.append('zones.json')
-
-    with ok('Generating levels.json'):
-        with open('levels.json', 'w') as out:
-            data = []
-            for level in ctx.obj['levels']:
-                data.append({
-                    'id': level.id,
-                    'label': level.label,
-                    'parents': [p.id for p in level.parents]
-                })
-            if pretty:
-                json.dump(data, out, indent=4)
+        filename = 'zones.{serialization}'.format(serialization=serialization)
+        with ok('Generating {filename}'.format(filename=filename)):
+            zones = geozones.find({'level': {'$in': level_ids}})
+            if serialization == 'json':
+                with open(filename, 'w') as out:
+                    geojson.dump(zones, out, pretty=pretty)
             else:
-                json.dump(data, out)
-            filenames.append('levels.json')
+                packer = msgpack.Packer(use_bin_type=True)
+                with open(filename, 'wb') as out:
+                    for zone in zones:
+                        out.write(packer.pack(zone))
+        filenames.append(filename)
+
+    filename = 'levels.{serialization}'.format(serialization=serialization)
+    with ok('Generating {filename}'.format(filename=filename)):
+        data = [{
+            'id': level.id,
+            'label': level.label,
+            'parents': [p.id for p in level.parents]
+        } for level in ctx.obj['levels']]
+        if serialization == 'json':
+            with open(filename, 'w') as out:
+                if pretty:
+                    json.dump(data, out, indent=4)
+                else:
+                    json.dump(data, out)
+        else:
+            packer = msgpack.Packer(use_bin_type=True)
+            with open(filename, 'wb') as out:
+                for item in data:
+                    out.write(packer.pack(item))
+        filenames.append(filename)
 
     if compress:
         filename = 'geozones-translations.tar.xz'
@@ -193,6 +215,9 @@ def dist(ctx, pretty, split, compress):
                 txz.add(join(ctx.obj['home'], 'translations'), 'translations')
 
         filename = 'geozones-split.tar.xz' if split else 'geozones.tar.xz'
+
+        filename = 'geozones{split}-{serialization}.tar.xz'.format(
+            split='-split' if split else '', serialization=serialization)
         with ok('Compressing to {0}'.format(filename)):
             with tarfile.open(filename, 'w:xz') as txz:
                 for name in filenames:
@@ -206,10 +231,12 @@ def dist(ctx, pretty, split, compress):
 @cli.command()
 @click.pass_context
 @click.option('-d', '--drop', is_flag=True)
-@click.option('-p', '--pretty', is_flag=True)
+@click.option('-p', '--pretty', is_flag=False)
 @click.option('-s', '--split', is_flag=True)
 @click.option('-c/-nc', '--compress/--no-compress', default=False)
-def full(ctx, drop, pretty, split, compress):
+@click.option('-r', '--serialization', default='json',
+              type=click.Choice(['json', 'msgpack']))
+def full(ctx, drop, pretty, split, compress, serialization):
     '''
     Perfom a full processing
 
@@ -219,7 +246,8 @@ def full(ctx, drop, pretty, split, compress):
     ctx.invoke(load, drop=drop)
     ctx.invoke(aggregate)
     ctx.invoke(postprocess)
-    ctx.invoke(dist, pretty=pretty, split=split, compress=compress)
+    ctx.invoke(dist, pretty=pretty, split=split, compress=compress,
+               serialization=serialization)
 
 
 @cli.command()
