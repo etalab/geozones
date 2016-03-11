@@ -214,6 +214,19 @@ Commands are chainables so you can write:
     $ ./geozones.py download load -d aggregate postprocess dist dist -s status
 
 
+Options
+-------
+
+``serialization``
+~~~~~~~~~~~~~~~~~
+
+You can export data in (Geo)JSON or `msgpack <http://msgpack.org/>`_ formats.
+
+The msgpack format consumes more CPU on deserialization but does not take
+many gigabytes of RAM given that it can iterate over data without loading
+the whole file.
+
+
 Reused datasets
 ---------------
 
@@ -261,7 +274,6 @@ Output
 
 - Different precision output
 - Localized JSON outputs (Output are english only right now)
-- Different outputs formats (Only JSON/GeoJSON is outputted)
 - Translations as distributable JSON (as an alternative to the current PO/MO format)
 - Translations as Python package
 - Model versionning
