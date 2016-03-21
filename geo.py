@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
+
 from os.path import join, basename
+from zipfile import ZipFile
 
 import fiona
 
@@ -83,7 +85,15 @@ class Level(object):
         loaded = 0
         filename = join(workdir, basename(url))
 
-        with fiona.open('/', vfs='zip://{0}'.format(filename), encoding='utf8') as collection:
+        # Identify the shapefile to avoid multiple file error on GDAL 2
+
+        with ZipFile(filename) as z:
+            candidates = [n for n in z.namelist() if n.endswith('.shp')]
+            if len(candidates) != 1:
+                raise ValueError('Unable to find a unique shpaefile into {0}'.format(filename))
+            shp = candidates[0]
+
+        with fiona.open('/{0}'.format(shp), vfs='zip://{0}'.format(filename), encoding='utf8') as collection:
             info('Extracting {0} elements from {1} ({2} {3})'.format(
                 len(collection), basename(filename), collection.driver, to_string(collection.crs)
             ))
