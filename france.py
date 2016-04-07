@@ -184,7 +184,7 @@ def extract_french_region(polygon):
     }
 
 
-@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip')
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip', simplify=0.005)
 def extract_french_town(polygon):
     '''
     Extract a french town informations from a MultiPolygon.

@@ -1,8 +1,10 @@
-import os
 import re
+import json
 from string import Template
 
 import requests
+
+from tools import warning
 
 
 RE_WIKIPEDIA = re.compile(
@@ -58,9 +60,17 @@ class DBPedia(object):
             'query': sparql_query,
             'format': 'json'
         }
-        response = requests.get(SPARQL_SERVER, params=parameters)
-        data = response.json()
         population_or_area = {}
+        try:
+            response = requests.get(SPARQL_SERVER, params=parameters)
+        except requests.exceptions.ReadTimeout:
+            warning('Timeout:', SPARQL_SERVER, parameters)
+            return population_or_area
+        try:
+            data = response.json()
+        except json.decoder.JSONDecodeError:
+            warning('JSON Error:', SPARQL_SERVER, parameters, response.text)
+            return population_or_area
         try:
             results = data['results']['bindings'][0]
         except IndexError:
@@ -79,9 +89,17 @@ class DBPedia(object):
             'query': sparql_query,
             'format': 'json'
         }
-        response = requests.get(SPARQL_SERVER, params=parameters)
-        data = response.json()
         flag_or_blazon = {}
+        try:
+            response = requests.get(SPARQL_SERVER, params=parameters)
+        except requests.exceptions.ReadTimeout:
+            warning('Timeout:', SPARQL_SERVER, parameters)
+            return flag_or_blazon
+        try:
+            data = response.json()
+        except json.decoder.JSONDecodeError:
+            warning('JSON Error:', SPARQL_SERVER, parameters, response.text)
+            return flag_or_blazon
         try:
             results = data['results']['bindings'][0]
         except IndexError:
