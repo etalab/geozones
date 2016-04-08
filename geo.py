@@ -37,6 +37,9 @@ class Level(object):
 
             - name
             - code
+
+        The simplify parameter is documented here (we use `0.005` for France):
+        http://toblerity.org/shapely/manual.html#object.simplify
         '''
         def wrapper(func):
             func.simplify = simplify
