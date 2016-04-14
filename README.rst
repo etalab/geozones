@@ -247,11 +247,6 @@ Reused datasets
 Possible improvements
 ---------------------
 
-Datasets
-~~~~~~~~
-
-- Use enriched version of French towns boundaries (when updated for 2015)
-
 Build
 ~~~~~
 
@@ -259,9 +254,7 @@ Build
 - Global postprocessor
 - Postprocessor dependencies
 - Audit trail
-- Better and lightweight DBPedia retrieval (using http://dbpedia.org/sparql)
 - Distribute GeoZone as a standalone python executable
-- Allow to execute a single postprocessor
 - Some quality check tools
 
 Fields

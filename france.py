@@ -423,6 +423,33 @@ def town_with_districts(db, filename):
     success('Attached {0} districts to Lyon'.format(result.modified_count))
 
 
+@town.postprocessor()
+def compute_town_with_districts_population(db, filename):
+    info('Computing Paris town districts population')
+    districts = db.find({'_id': {'$in': PARIS_DISTRICTS}})
+    population = sum(district['population'] for district in districts)
+    db.find_one_and_update(
+        {'_id': 'fr/town/75056'},
+        {'$set': {'population': population}})
+    success('Computed population for Paris')
+
+    info('Computing Marseille town districts population')
+    districts = db.find({'_id': {'$in': MARSEILLE_DISTRICTS}})
+    population = sum(district['population'] for district in districts)
+    db.find_one_and_update(
+        {'_id': 'fr/town/13055'},
+        {'$set': {'population': population}})
+    success('Computed population for Marseille')
+
+    info('Computing Lyon town districts population')
+    districts = db.find({'_id': {'$in': LYON_DISTRICTS}})
+    population = sum(district['population'] for district in districts)
+    db.find_one_and_update(
+        {'_id': 'fr/town/69123'},
+        {'$set': {'population': population}})
+    success('Computed population for Lyon')
+
+
 # Need to be the last processed
 @town.postprocessor()
 def attach_counties_to_subcountries(db, filename):
