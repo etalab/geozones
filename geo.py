@@ -183,9 +183,11 @@ class Level(object):
         data.update(properties)
         return data
 
-    def postprocess(self, workdir, db):
+    def postprocess(self, workdir, db, only=None):
         '''Perform postprocessing'''
         for url, processor in self.postprocessors:
+            if only is not None and processor.__name__ != only:
+                continue
             filepath = None
             if url:
                 filename, _ = extract_meta_from_headers(url)

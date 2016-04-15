@@ -128,13 +128,14 @@ def aggregate(ctx):
 
 @cli.command()
 @click.pass_context
-def postprocess(ctx):
+@click.option('-o', '--only', default=None)
+def postprocess(ctx, only):
     '''Perform some postprocessing'''
     title('Performing post-processing')
     zones = DB()
 
     for level in ctx.obj['levels']:
-        level.postprocess(DL_DIR, zones)
+        level.postprocess(DL_DIR, zones, only)
 
     success('Post-processing done')
 

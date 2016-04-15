@@ -60,26 +60,26 @@ class DBPedia(object):
             'query': sparql_query,
             'format': 'json'
         }
-        population_or_area = {}
+        result = {}
         try:
             response = requests.get(SPARQL_SERVER, params=parameters)
         except requests.exceptions.ReadTimeout:
             warning('Timeout:', SPARQL_SERVER, parameters)
-            return population_or_area
+            return result
         try:
             data = response.json()
         except json.decoder.JSONDecodeError:
             warning('JSON Error:', SPARQL_SERVER, parameters, response.text)
-            return population_or_area
+            return result
         try:
             results = data['results']['bindings'][0]
         except IndexError:
-            return population_or_area
+            return result
         if 'population' in results:
-            population_or_area['population'] = results['population']['value']
+            result['population'] = int(results['population']['value'])
         if 'area' in results:
-            population_or_area['area'] = results['area']['value']
-        return population_or_area
+            result['area'] = int(round(float(results['area']['value'])))
+        return result
 
     def fetch_flag_or_blazon(self):
         sparql_query = SPARQL_IMAGE_TEMPLATE.substitute(
