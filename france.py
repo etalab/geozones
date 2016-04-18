@@ -184,7 +184,7 @@ def extract_french_region(polygon):
     }
 
 
-@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip', simplify=0.005)
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip', simplify=0.0005)
 def extract_french_town(polygon):
     '''
     Extract a french town informations from a MultiPolygon.
@@ -424,6 +424,32 @@ def town_with_districts(db, filename):
 
 
 @town.postprocessor()
+def fetch_missing_data_from_dbpedia(db, filename):
+    info('Fetching DBPedia data')
+    processed = 0
+    for zone in db.find({
+            'wikipedia': {'$exists': True, '$ne': None},
+            '$or': [
+                {'population': None},
+                {'population': {'$exists': False}},
+                {'area': None},
+                {'area': {'$exists': False}},
+            ]
+            }, no_cursor_timeout=True):
+
+        dbpedia = DBPedia(zone['wikipedia'])
+        metadata = {
+            'dbpedia': dbpedia.resource_url,
+        }
+        metadata.update(dbpedia.fetch_population_or_area())
+        metadata.update(dbpedia.fetch_flag_or_blazon())
+        if db.find_one_and_update({'_id': zone['_id']},
+                                  {'$set': metadata}):
+            processed += 1
+    success('Fetched DBPedia data for {0} zones'.format(processed))
+
+
+@town.postprocessor()
 def compute_town_with_districts_population(db, filename):
     info('Computing Paris town districts population')
     districts = db.find({'_id': {'$in': PARIS_DISTRICTS}})
@@ -588,29 +614,3 @@ def compute_district_population(db, filename):
                     {'$set': {'population': result['population']}}):
                 processed += 1
     success('Computed population for {0} french districts'.format(processed))
-
-
-@town.postprocessor()
-def fetch_missing_data_from_dbpedia(db, filename):
-    info('Fetching DBPedia data')
-    processed = 0
-    for zone in db.find({
-            'wikipedia': {'$exists': True, '$ne': None},
-            '$or': [
-                {'population': None},
-                {'population': {'$exists': False}},
-                {'area': None},
-                {'area': {'$exists': False}},
-            ]
-            }, no_cursor_timeout=True):
-
-        dbpedia = DBPedia(zone['wikipedia'])
-        metadata = {
-            'dbpedia': dbpedia.resource_url,
-        }
-        metadata.update(dbpedia.fetch_population_or_area())
-        metadata.update(dbpedia.fetch_flag_or_blazon())
-        if db.find_one_and_update({'_id': zone['_id']},
-                                  {'$set': metadata}):
-            processed += 1
-    success('Fetched DBPedia data for {0} zones'.format(processed))
