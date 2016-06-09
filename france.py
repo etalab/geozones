@@ -333,7 +333,7 @@ def attach_epci(db, filename):
     # success('Attached {0} french EPCI to their region'.format(processed))
 
 
-@town.postprocessor('http://www.insee.fr/fr/methodes/nomenclatures/cog/telechargement/2015/txt/comsimp2015.zip')
+@town.postprocessor('http://www.insee.fr/fr/methodes/nomenclatures/cog/telechargement/2016/txt/comsimp2016.zip')
 def process_insee_cog(db, filename):
     '''Use informations from INSEE COG to attach parents.
     http://www.insee.fr/fr/methodes/nomenclatures/cog/telechargement.asp
@@ -343,18 +343,19 @@ def process_insee_cog(db, filename):
     counties = {}
     districts = {}
     with ZipFile(filename) as cogzip:
-        with cogzip.open('comsimp2015.txt') as tsvfile:
+        with cogzip.open('comsimp2016.txt') as tsvfile:
             tsvio = io.TextIOWrapper(tsvfile, encoding='cp1252')
             reader = csv.DictReader(tsvio, delimiter='\t')
             for row in reader:
-                region_code = row['REG']
-                county_code = row['DEP']
-                district_code = row['AR']
-                town_code = row['COM']
+                # Lower everything, from 2B to 2b for instance.
+                region_code = row['REG'].lower()
+                county_code = row['DEP'].lower()
+                district_code = row['AR'].lower()
+                town_code = row['COM'].lower()
                 insee_code = ''.join((county_code, town_code))
 
-                region_id = 'fr/region/{0}'.format(region_code).lower()
-                county_id = 'fr/county/{0}'.format(county_code).lower()
+                region_id = 'fr/region/{0}'.format(region_code)
+                county_id = 'fr/county/{0}'.format(county_code)
 
                 parents = [region_id, county_id]
 
@@ -363,7 +364,7 @@ def process_insee_cog(db, filename):
 
                 if district_code:
                     district_code = ''.join((county_code, district_code))
-                    district_id = 'fr/district/{0}'.format(district_code).lower()
+                    district_id = 'fr/district/{0}'.format(district_code)
                     parents.append(district_id)
                     if district_id not in districts:
                         districts[district_id] = [region_id, county_id]
