@@ -553,6 +553,25 @@ def attach_and_clean_iris(db, filename):
     success('Attached {0} french IRIS to their parents'.format(processed))
 
 
+@district.postprocessor()
+def compute_district_population(db, filename):
+    info('Computing french district population by aggregation')
+    processed = 0
+    pipeline = [
+        {'$match': {'level': town.id}},
+        {'$unwind': '$parents'},
+        {'$match': {'parents': {'$regex': district.id}}},
+        {'$group': {'_id': '$parents', 'population': {'$sum': '$population'}}}
+    ]
+    for result in db.aggregate(pipeline):
+        if result.get('population'):
+            if db.find_one_and_update(
+                    {'_id': result['_id']},
+                    {'$set': {'population': result['population']}}):
+                processed += 1
+    success('Computed population for {0} french districts'.format(processed))
+
+
 @county.postprocessor()
 def compute_county_area_and_population(db, filename):
     info('Computing french counties areas and population by aggregation')
@@ -595,22 +614,3 @@ def compute_region_population(db, filename):
                     {'$set': {'population': result['population']}}):
                 processed += 1
     success('Computed population for {0} french regions'.format(processed))
-
-
-@district.postprocessor()
-def compute_district_population(db, filename):
-    info('Computing french district population by aggregation')
-    processed = 0
-    pipeline = [
-        {'$match': {'level': town.id}},
-        {'$unwind': '$parents'},
-        {'$match': {'parents': {'$regex': district.id}}},
-        {'$group': {'_id': '$parents', 'population': {'$sum': '$population'}}}
-    ]
-    for result in db.aggregate(pipeline):
-        if result.get('population'):
-            if db.find_one_and_update(
-                    {'_id': result['_id']},
-                    {'$set': {'population': result['population']}}):
-                processed += 1
-    success('Computed population for {0} french districts'.format(processed))
