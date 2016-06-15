@@ -147,10 +147,12 @@ def postprocess(ctx, only):
 @click.option('-c/-nc', '--compress/--no-compress', default=True)
 @click.option('-r', '--serialization', default='json',
               type=click.Choice(['json', 'msgpack']))
-def dist(ctx, pretty, split, compress, serialization):
+@click.option('-k', '--keys', default=None)
+def dist(ctx, pretty, split, compress, serialization, keys):
     '''Dump a distributable file'''
-    title('Dumping data to {serialization}'.format(
-        serialization=serialization))
+    keys = keys and keys.split(',')
+    title('Dumping data to {serialization} with keys {keys}'.format(
+        serialization=serialization, keys=keys))
     geozones = DB()
     filenames = []
 
@@ -168,7 +170,7 @@ def dist(ctx, pretty, split, compress, serialization):
                 zones = geozones.find({'level': level_id})
                 if serialization == 'json':
                     with open(filename, 'w') as out:
-                        geojson.dump(zones, out, pretty=pretty)
+                        geojson.dump(zones, out, pretty=pretty, keys=keys)
                 else:
                     packer = msgpack.Packer(use_bin_type=True)
                     with open(filename, 'wb') as out:
@@ -181,7 +183,7 @@ def dist(ctx, pretty, split, compress, serialization):
             zones = geozones.find({'level': {'$in': level_ids}})
             if serialization == 'json':
                 with open(filename, 'w') as out:
-                    geojson.dump(zones, out, pretty=pretty)
+                    geojson.dump(zones, out, pretty=pretty, keys=keys)
             else:
                 packer = msgpack.Packer(use_bin_type=True)
                 with open(filename, 'wb') as out:
@@ -237,7 +239,8 @@ def dist(ctx, pretty, split, compress, serialization):
 @click.option('-c/-nc', '--compress/--no-compress', default=False)
 @click.option('-r', '--serialization', default='json',
               type=click.Choice(['json', 'msgpack']))
-def full(ctx, drop, pretty, split, compress, serialization):
+@click.option('-k', '--keys', default=None)
+def full(ctx, drop, pretty, split, compress, serialization, keys):
     '''
     Perfom a full processing
 
@@ -248,7 +251,7 @@ def full(ctx, drop, pretty, split, compress, serialization):
     ctx.invoke(aggregate)
     ctx.invoke(postprocess)
     ctx.invoke(dist, pretty=pretty, split=split, compress=compress,
-               serialization=serialization)
+               serialization=serialization, keys=keys)
 
 
 @cli.command()

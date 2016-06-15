@@ -4,31 +4,38 @@ import json
 from tools import unicodify
 
 
-def zone_to_feature(zone):
+def zone_to_feature(zone, keys):
     '''Serialize a zone into a GeoJSON feature'''
-    return {
+    properties = {
+        'level': zone['level'],
+        'code': zone['code'],
+        'name': unicodify(zone['name']),
+        'wikipedia': unicodify(zone.get('wikipedia', '')) or None,
+        'dbpedia': unicodify(zone.get('dbpedia', '')) or None,
+        'population': int(zone.get('population', 0)),
+        'area': int(zone.get('area', 0)),
+        'flag': unicodify(zone.get('flag', '')) or None,
+        'blazon': unicodify(zone.get('blazon', '')) or None,
+        'keys': zone.get('keys', {}),
+        'parents': zone.get('parents', [])
+    }
+    if keys is not None:
+        for unwanted_key in set(properties.keys()) - set(keys):
+            del properties[unwanted_key]
+    feature = {
         'id': zone['_id'],
         'type': 'Feature',
         'geometry': zone['geom'],
-        'properties': {
-            'level': zone['level'],
-            'code': zone['code'],
-            'name': unicodify(zone['name']),
-            'wikipedia': unicodify(zone.get('wikipedia', '')) or None,
-            'dbpedia': unicodify(zone.get('dbpedia', '')) or None,
-            'population': zone.get('population', None),
-            'area': zone.get('area', None),
-            'flag': unicodify(zone.get('flag', '')) or None,
-            'blazon': unicodify(zone.get('blazon', '')) or None,
-            'keys': zone.get('keys', {}),
-            'parents': zone.get('parents', [])
-        }
+        'properties': properties
     }
+    if keys is not None and 'geometry' not in keys:
+        del feature['geometry']
+    return feature
 
 
-def dump_zones(zones):
+def dump_zones(zones, keys):
     '''Serialize a zones queryset into a sarializable dict'''
-    features = [zone_to_feature(z) for z in zones]
+    features = [zone_to_feature(z, keys) for z in zones]
     data = {
         'type': 'FeatureCollection',
         'features': features,
@@ -45,8 +52,8 @@ def dumps(zones, pretty=False):
         return json.dumps(data)
 
 
-def dump(zones, out, pretty=False):
-    data = dump_zones(zones)
+def dump(zones, out, pretty=False, keys=None):
+    data = dump_zones(zones, keys=keys)
     if pretty:
         return json.dump(data, out, indent=4)
     else:

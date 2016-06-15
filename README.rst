@@ -112,6 +112,9 @@ The following properties are exported in the GeoJSON output:
 :parents:
     A list of every known parent zone identifier
 
+Note that you can choose via the `keys` option which properties you would like
+to export during the `dist`ribution step.
+
 
 Translations
 ------------
@@ -179,7 +182,7 @@ Perform some non geospatial processing (ex: set the postal codes, attach the par
 ``dist``
 ~~~~~~~~
 
-Dump the produced dataset as GeoJSON files for distribution.
+Dump the produced dataset as GeoJSON or MSGPack files for distribution.
 Files are dumped in a build subdirectory.
 
 
@@ -225,6 +228,19 @@ You can export data in (Geo)JSON or `msgpack <http://msgpack.org/>`_ formats.
 The msgpack format consumes more CPU on deserialization but does not take
 many gigabytes of RAM given that it can iterate over data without loading
 the whole file.
+
+
+``keys``
+~~~~~~~~
+
+You can export only the properties that you want to use.
+This option only works with the JSON serialization.
+
+.. code-block:: shell
+
+    # Only export population and area without geometry
+    $ ./geozones.py dist -k population,area
+
 
 
 Reused datasets
