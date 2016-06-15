@@ -1,6 +1,6 @@
 click>=4.0
 colorama>=0.3.3
-Fiona>=1.5.1
+Fiona>=1.7.0
 msgpack-python==0.4.7
 pymongo>=3.0
 Shapely>=1.5.7
