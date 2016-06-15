@@ -7,7 +7,7 @@ This project is a set of tools to produce a shared spatial/administrative refere
 based on open datasets.
 
 The purpose is to be embeddable in applications for autocompletion.
-There is no purpose of universality (country levels are not comparables)
+There is no purpose of universality (country levels are not comparable).
 nor precision (most sourced datasets have a 100m precision).
 
 These tools work on and exports WGS84 spatial data.
@@ -31,18 +31,29 @@ Translations requires Babel and Transifex client
 Getting started
 ---------------
 
-There is many way of getting a developement environement started.
+There is many way of getting a development environment started.
 
-Assuming you have Virtualenv and MongoDB installed and configured on you computer:
+Running Mongo
+~~~~~~~~~~~~~
+
+A MongoDB instance can be run natively on your system or via `Docker Compose <https://docs.docker.com/compose/>`_:
+
+.. code-block:: shell
+
+    $ docker-compose up
+
+
+Installation
+~~~~~~~~~~~~
 
 .. code-block:: shell
 
     $ git clone https://github.com/etalab/geozones.git
     $ cd geozones
-    $ virtualenv -p /bin/python3 .
-    $ source bin/activate
+    $ python3 -m venv venv
+    $ source venv/bin/activate
     $ pip install -r requirements.pip
-    $ ./geozones.py
+    $ ./geozones.py --help
 
 
 Model
@@ -67,12 +78,12 @@ Zones
 A zone is a spatial polygon for a given level.
 It has at least one unique code (unique on its level) and a name.
 It can have many known keys, that are not necessary unique
-(ie. postal codes can be shared by many town)
+(ie.: postal codes can be shared by many town).
 
-Labels are optionnaly translatables.
+Labels are optionally translatable.
 
 Some zones are defined as an aggregation of other zones.
-They are called aggregation in geozones and builded after all data are loaded.
+They are called _aggregation_ in Geozones and built after all data are loaded.
 
 The following properties are exported in the GeoJSON output:
 
@@ -116,15 +127,15 @@ The following properties are exported in the GeoJSON output:
 Translations
 ------------
 
-Level names and some territories are translatables.
-They are providen as gettext files.
+Level names and some territories are translatable.
+They are provided as _gettext_ files.
 Translations are handled on `transifex <https://www.transifex.com/projects/p/geozones/>`_.
 
 Here's the workflow:
 
 .. code-block:: shell
 
-    # Extract translatables labels
+    # Extract translatable labels
     $ pybabel extract -F babel.cfg -o translations/geozones.pot .
     # Push updated translations template to Transifex
     $ tx push -s
@@ -144,8 +155,8 @@ To add an extra language:
 Commands
 --------
 
-A set of commands are providen for the build process.
-You can list all of them with:
+A set of commands is provided for the build process.
+You can list them all with:
 
 .. code-block:: shell
 
@@ -206,11 +217,11 @@ Serve a webinterface to explore the generated data.
 Display some useful informations and statistics
 
 
-Commands are chainables so you can write:
+Commands are chainable so you can write:
 
 .. code-block:: shell
 
-    # Perform all tasks from download to distibution
+    # Perform all tasks from download to distribution
     $ ./geozones.py download load -d aggregate postprocess dist dist -s status
 
 
@@ -222,7 +233,7 @@ Options
 
 You can export data in (Geo)JSON or `msgpack <http://msgpack.org/>`_ formats.
 
-The msgpack format consumes more CPU on deserialization but does not take
+The _msgpack_ format consumes more CPU on deserialization but does not take
 many gigabytes of RAM given that it can iterate over data without loading
 the whole file.
 
@@ -230,7 +241,7 @@ the whole file.
 Reused datasets
 ---------------
 
-- `NaturalEarth administratives boundaries <http://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/>`_
+- `NaturalEarth administrative boundaries <http://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/>`_
 - `The Matic Mapping country boundaries <http://thematicmapping.org/downloads/world_borders.php>`_
 - `OpenStreetMap french regions boundaries <http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/>`_
 - `OpenStreetMap french counties boundaries <http://www.data.gouv.fr/datasets/contours-des-departements-francais-issus-d-openstreetmap/>`_
@@ -238,7 +249,7 @@ Reused datasets
 - `OpenStreetMap french districts boundaries <http://www.data.gouv.fr/datasets/contours-des-arrondissements-francais-issus-d-openstreetmap/>`_
 - `OpenStreetMap french towns boundaries <http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/>`_
 - `OpenStreetMap french cantons boundaries <http://www.data.gouv.fr/fr/datasets/contours-osm-des-cantons-electoraux-departementaux-2015/>`_
-- `IGN/ISEE IRIS agregated version <https://www.data.gouv.fr/fr/datasets/contour-des-iris-insee-tout-en-un/>`_
+- `IGN/ISEE IRIS aggregated version <https://www.data.gouv.fr/fr/datasets/contour-des-iris-insee-tout-en-un/>`_
 - `French postal codes database <https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/>`_
 - `DGCL EPCIs list <http://www.collectivites-locales.gouv.fr/liste-et-composition-2015>`_
 - `INSEE COG <http://www.insee.fr/fr/methodes/nomenclatures/cog/telechargement.asp>`_
@@ -269,7 +280,7 @@ Output
 - Localized JSON outputs (Output are english only right now)
 - Translations as distributable JSON (as an alternative to the current PO/MO format)
 - Translations as Python package
-- Model versionning
+- Model versioning
 - Statistics/coverages in levels
 
 Web interface
