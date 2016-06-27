@@ -69,7 +69,8 @@ class DBPedia(object):
         try:
             data = response.json()
         except json.decoder.JSONDecodeError:
-            warning('JSON Error:', SPARQL_SERVER, parameters, response.text)
+            warning('JSON Error: {0} {1} {2}',
+                    SPARQL_SERVER, parameters, response.text)
             return result
         try:
             results = data['results']['bindings'][0]
@@ -98,7 +99,8 @@ class DBPedia(object):
         try:
             data = response.json()
         except json.decoder.JSONDecodeError:
-            warning('JSON Error:', SPARQL_SERVER, parameters, response.text)
+            warning('JSON Error: {0} {1} {2}',
+                    SPARQL_SERVER, parameters, response.text)
             return flag_or_blazon
         try:
             results = data['results']['bindings'][0]

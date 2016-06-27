@@ -189,6 +189,8 @@ Perform zones aggregations for zones defined as aggregation of others.
 
 Perform some non geospatial processing (ex: set the postal codes, attach the parents...).
 
+``--exclude`` and ``--only`` options make possible to run a set of postprocess function(s).
+
 
 ``dist``
 ~~~~~~~~

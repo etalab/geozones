@@ -12,20 +12,20 @@ _ = lambda s: s
 
 region = Level('fr/region', _('French region'), country)
 epci = Level('fr/epci', _('French intermunicipal (EPCI)'), region)
-county = Level('fr/county', _('French county'), region)
+county = Level('fr/departement', _('French county'), region)
 district = Level('fr/district', _('French district'), county)
-town = Level('fr/town', _('French town'), district, epci)
+town = Level('fr/commune', _('French town'), district, epci)
 canton = Level('fr/canton', _('French canton'), county)
 
 # Not opendata yet
 iris = Level('fr/iris', _('Iris (Insee districts)'), town)
 
 # Cities with districts
-PARIS_DISTRICTS = ['fr/town/751{0:0>2}'.format(i) for i in range(1, 21)]
+PARIS_DISTRICTS = ['fr/commune/751{0:0>2}'.format(i) for i in range(1, 21)]
 
-MARSEILLE_DISTRICTS = ['fr/town/132{0:0>2}'.format(i) for i in range(1, 17)]
+MARSEILLE_DISTRICTS = ['fr/commune/132{0:0>2}'.format(i) for i in range(1, 17)]
 
-LYON_DISTRICTS = ['fr/town/6938{0}'.format(i) for i in range(1, 9)]
+LYON_DISTRICTS = ['fr/commune/6938{0}'.format(i) for i in range(1, 9)]
 
 # Overseas territories as counties
 OVERSEAS = {
@@ -38,37 +38,50 @@ OVERSEAS = {
     'tf': ('984', 'Terres australes et antarctiques françaises'),
 }
 
-FR_METRO_COUNTIES = (['{0:0>2}'.format(i) for i in range(1, 20)]
+FR_METRO_COUNTIES = (
+    ['{0:0>2}'.format(i) for i in range(1, 20)]
     + ['2a', '2b']
     + ['{0:0>2}'.format(i) for i in range(21, 96)])
 
 FR_DOM_COUNTIES = ('971', '972', '973', '974', '976')
 
-FR_DOMTOM_COUNTIES = ('971', '972', '973', '974', '975', '976', '977', '978', '984', '986', '987', '988')
+FR_DOMTOM_COUNTIES = (
+    '971', '972', '973', '974', '975', '976', '977', '978', '984', '986',
+    '987', '988'
+)
 
 
-town.aggregate('75056', 'Paris', PARIS_DISTRICTS,
-    parents=['country/fr', 'country-group/ue', 'country-group/world', 'fr/county/75'],
+town.aggregate(
+    '75056', 'Paris', PARIS_DISTRICTS,
+    parents=['country/fr', 'country-group/ue', 'country-group/world',
+             'fr/departement/75'],
     keys={'insee': '75056'})
 
-town.aggregate('13055', 'Marseille', MARSEILLE_DISTRICTS,
-    parents=['country/fr', 'country-group/ue', 'country-group/world', 'fr/county/13'],
+town.aggregate(
+    '13055', 'Marseille', MARSEILLE_DISTRICTS,
+    parents=['country/fr', 'country-group/ue', 'country-group/world',
+             'fr/departement/13'],
     keys={'insee': '13055'})
 
-town.aggregate('69123', 'Lyon', LYON_DISTRICTS,
-    parents=['country/fr', 'country-group/ue', 'country-group/world', 'fr/county/69'],
+town.aggregate(
+    '69123', 'Lyon', LYON_DISTRICTS,
+    parents=['country/fr', 'country-group/ue', 'country-group/world',
+             'fr/departement/69'],
     keys={'insee': '69123'})
 
-country_subset.aggregate('fr/metro', _('Metropolitan France'),
-    ['fr/county/{0}'.format(code) for code in FR_METRO_COUNTIES],
+country_subset.aggregate(
+    'fr/metro', _('Metropolitan France'),
+    ['fr/departement/{0}'.format(code) for code in FR_METRO_COUNTIES],
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
-country_subset.aggregate('fr/dom', 'DOM',
-    ['fr/county/{0}'.format(code) for code in FR_DOM_COUNTIES],
+country_subset.aggregate(
+    'fr/dom', 'DOM',
+    ['fr/departement/{0}'.format(code) for code in FR_DOM_COUNTIES],
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
-country_subset.aggregate('fr/domtom', _('Overseas France'),
-    ['fr/county/{0}'.format(code) for code in FR_DOMTOM_COUNTIES],
+country_subset.aggregate(
+    'fr/domtom', _('Overseas France'),
+    ['fr/departement/{0}'.format(code) for code in FR_DOMTOM_COUNTIES],
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
 
@@ -233,7 +246,7 @@ def extract_french_canton(polygon):
     props = polygon['properties']
     code = props['ref'].lower()
     county_code = props['dep'].lower()
-    county_id = 'fr/county/{0}'.format(county_code)
+    county_id = 'fr/departement/{0}'.format(county_code)
     return {
         'code': code,
         'name': unicodify(props['nom']),
@@ -255,7 +268,7 @@ def extract_iris(polygon):
     props = polygon['properties']
     code = props['DCOMIRIS']
     town_code = props['DEPCOM'].lower()
-    town_id = 'fr/town/{0}'.format(town_code)
+    town_id = 'fr/commune/{0}'.format(town_code)
     name = unicodify(props['NOM_IRIS']).title()
     return {
         'code': code,
@@ -355,7 +368,7 @@ def process_insee_cog(db, filename):
                 insee_code = ''.join((county_code, town_code))
 
                 region_id = 'fr/region/{0}'.format(region_code)
-                county_id = 'fr/county/{0}'.format(county_code)
+                county_id = 'fr/departement/{0}'.format(county_code)
 
                 parents = [region_id, county_id]
 
@@ -397,7 +410,7 @@ def process_insee_cog(db, filename):
 @town.postprocessor()
 def town_with_districts(db, filename):
     info('Attaching Paris town districts')
-    paris = db.find_one({'_id': 'fr/town/75056'})
+    paris = db.find_one({'_id': 'fr/commune/75056'})
     parents = paris['parents']
     parents.append(paris['_id'])
     result = db.update_many(
@@ -406,7 +419,7 @@ def town_with_districts(db, filename):
     success('Attached {0} districts to Paris'.format(result.modified_count))
 
     info('Attaching Marseille town districts')
-    marseille = db.find_one({'_id': 'fr/town/13055'})
+    marseille = db.find_one({'_id': 'fr/commune/13055'})
     parents = marseille['parents']
     parents.append(marseille['_id'])
     result = db.update_many(
@@ -415,7 +428,7 @@ def town_with_districts(db, filename):
     success('Attached {0} districts to Marseille'.format(result.modified_count))
 
     info('Attaching Lyon town districts')
-    lyon = db.find_one({'_id': 'fr/town/69123'})
+    lyon = db.find_one({'_id': 'fr/commune/69123'})
     parents = lyon['parents']
     parents.append(lyon['_id'])
     result = db.update_many(
@@ -456,7 +469,7 @@ def compute_town_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': PARIS_DISTRICTS}})
     population = sum(district['population'] for district in districts)
     db.find_one_and_update(
-        {'_id': 'fr/town/75056'},
+        {'_id': 'fr/commune/75056'},
         {'$set': {'population': population}})
     success('Computed population for Paris')
 
@@ -464,7 +477,7 @@ def compute_town_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': MARSEILLE_DISTRICTS}})
     population = sum(district['population'] for district in districts)
     db.find_one_and_update(
-        {'_id': 'fr/town/13055'},
+        {'_id': 'fr/commune/13055'},
         {'$set': {'population': population}})
     success('Computed population for Marseille')
 
@@ -472,7 +485,7 @@ def compute_town_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': LYON_DISTRICTS}})
     population = sum(district['population'] for district in districts)
     db.find_one_and_update(
-        {'_id': 'fr/town/69123'},
+        {'_id': 'fr/commune/69123'},
         {'$set': {'population': population}})
     success('Computed population for Lyon')
 
@@ -481,7 +494,7 @@ def compute_town_with_districts_population(db, filename):
 @town.postprocessor()
 def attach_counties_to_subcountries(db, filename):
     info('Attaching French Metropolitan counties')
-    ids = ['fr/county/{0}' .format(c) for c in FR_METRO_COUNTIES]
+    ids = ['fr/departement/{0}' .format(c) for c in FR_METRO_COUNTIES]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/metro'}}
@@ -489,7 +502,7 @@ def attach_counties_to_subcountries(db, filename):
     success('Attached {0} French Metropolitan children'.format(result.modified_count))
 
     info('Attaching French DOM counties')
-    ids = ['fr/county/{0}' .format(c) for c in FR_DOM_COUNTIES]
+    ids = ['fr/departement/{0}' .format(c) for c in FR_DOM_COUNTIES]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/dom'}}
@@ -497,7 +510,7 @@ def attach_counties_to_subcountries(db, filename):
     success('Attached {0} French DOM children'.format(result.modified_count))
 
     info('Attaching French DOM/TOM counties')
-    ids = ['fr/county/{0}' .format(c) for c in FR_DOMTOM_COUNTIES]
+    ids = ['fr/departement/{0}' .format(c) for c in FR_DOMTOM_COUNTIES]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/domtom'}}

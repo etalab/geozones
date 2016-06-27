@@ -60,7 +60,7 @@ def cli(ctx, level, home):
 @click.pass_context
 def download(ctx):
     '''Download sources datasets'''
-    title('Downloading required datasets')
+    title('Downloading required datasets, takes about 5 minutes')
     if not exists(DL_DIR):
         os.makedirs(DL_DIR)
 
@@ -88,7 +88,7 @@ def download(ctx):
 @click.option('-d', '--drop', is_flag=True)
 def load(ctx, drop):
     '''Load zones from a folder of zip files containing shapefiles'''
-    title('Extracting zones from datasets')
+    title('Extracting zones from datasets, takes about 15 minutes')
     zones = DB()
 
     if drop:
@@ -129,13 +129,17 @@ def aggregate(ctx):
 @cli.command()
 @click.pass_context
 @click.option('-o', '--only', default=None)
-def postprocess(ctx, only):
+@click.option('-e', '--exclude', default=None)
+def postprocess(ctx, only, exclude):
     '''Perform some postprocessing'''
-    title('Performing post-processing')
+    title('Performing post-processing, takes about 2 hours and a half')
+    title(('Take care of the order, especially `process_insee_cog` and '
+           '`compute_region_population` might need to be run again with '
+           'the `-o` option.'))
     zones = DB()
 
     for level in ctx.obj['levels']:
-        level.postprocess(DL_DIR, zones, only)
+        level.postprocess(DL_DIR, zones, only, exclude)
 
     success('Post-processing done')
 
@@ -246,6 +250,7 @@ def full(ctx, drop, pretty, split, compress, serialization, keys):
 
     Execute all operations from download to dist
     '''
+    title('Performing full processing, takes about 3 hours')
     ctx.invoke(download)
     ctx.invoke(load, drop=drop)
     ctx.invoke(aggregate)
