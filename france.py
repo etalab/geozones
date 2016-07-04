@@ -56,119 +56,119 @@ FR_NEW_REGIONS = {
         'wikipedia': 'https://fr.wikipedia.org/wiki/Alsace-Champagne-Ardenne-Lorraine',
         'surf_km2': 57433,
         'population': 5545000,
-        'insee_ancestors': [21, 41, 42]
+        'ancestors': ['fr/region/21', 'fr/region/41', 'fr/region/42']
     },
     'Aquitaine, Limousin et Poitou-Charentes': {
         'code_insee': '75',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Aquitaine-Limousin-Poitou-Charentes',
         'surf_km2': 84061,
         'population': 5773000,
-        'insee_ancestors': [72, 54, 74]
+        'ancestors': ['fr/region/72', 'fr/region/54', 'fr/region/74']
     },
     'Auvergne et Rhône-Alpes': {
         'code_insee': '84',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Auvergne-Rh%C3%B4ne-Alpes',
         'surf_km2': 69711,
         'population': 7634000,
-        'insee_ancestors': [83, 82]
+        'ancestors': ['fr/region/83', 'fr/region/82']
     },
     'Bourgogne et Franche-Comté': {
         'code_insee': '27',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Bourgogne-Franche-Comt%C3%A9',
         'surf_km2': 47784,
         'population': 2816000,
-        'insee_ancestors': [26, 43]
+        'ancestors': ['fr/region/26', 'fr/region/43']
     },
     'Bretagne': {
         'code_insee': '53',
         'wikipedia': 'https://fr.wikipedia.org/wiki/R%C3%A9gion_Bretagne',
         'surf_km2': 27208,
         'population': 3218000,
-        'insee_ancestors': []
+        'ancestors': []
     },
     'Centre-Val de Loire': {
         'code_insee': '24',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Centre-Val_de_Loire',
         'surf_km2': 39151,
         'population': 2556835,
-        'insee_ancestors': []
+        'ancestors': []
     },
     'Corse': {
         'code_insee': '94',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Corse',
         'surf_km2': 8680,
         'population': 322000,
-        'insee_ancestors': []
+        'ancestors': []
     },
     'Guadeloupe': {
         'code_insee': '01',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Guadeloupe',
         'surf_km2': 1628,
         'population': 404635,
-        'insee_ancestors': []
+        'ancestors': []
     },
     'Guyane': {
         'code_insee': '03',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Guyane',
         'surf_km2': 83534,
         'population': 237549,
-        'insee_ancestors': []
+        'ancestors': []
     },
     'La Réunion': {
         'code_insee': '04',
         'wikipedia': 'https://fr.wikipedia.org/wiki/La_R%C3%A9union',
         'surf_km2': 2504,
         'population': 828581,
-        'insee_ancestors': []
+        'ancestors': []
     },
     'Languedoc-Roussillon et Midi-Pyrénées': {
         'code_insee': '76',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Languedoc-Roussillon-Midi-Pyr%C3%A9n%C3%A9es',
         'surf_km2': 72724,
         'population': 5573000,
-        'insee_ancestors': [91, 73]
+        'ancestors': ['fr/region/91', 'fr/region/73']
     },
     'Martinique': {
         'code_insee': '02',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Martinique',
         'surf_km2': 1128,
         'population': 392291,
-        'insee_ancestors': []
+        'ancestors': []
     },
     'Nord-Pas-de-Calais et Picardie': {
         'code_insee': '32',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Nord-Pas-de-Calais-Picardie',
         'surf_km2': 31813,
         'population': 5960000,
-        'insee_ancestors': [31, 22]
+        'ancestors': ['fr/region/31', 'fr/region/22']
     },
     'Normandie': {
         'code_insee': '28',
         'wikipedia': 'https://fr.wikipedia.org/wiki/R%C3%A9gion_Normandie',
         'surf_km2': 29906,
         'population': 3315000,
-        'insee_ancestors': [23, 25]
+        'ancestors': ['fr/region/23', 'fr/region/25']
     },
     'Pays de la Loire': {
         'code_insee': '52',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Pays_de_la_Loire',
         'surf_km2': 32082,
         'population': 3601113,
-        'insee_ancestors': []
+        'ancestors': []
     },
     "Provence-Alpes-Côte d'Azur": {
         'code_insee': '93',
         'wikipedia': 'https://fr.wikipedia.org/wiki/Provence-Alpes-C%C3%B4te_d%27Azur',
         'surf_km2': 31400,
         'population': 4916000,
-        'insee_ancestors': []
+        'ancestors': []
     },
     'Île-de-France': {
         'code_insee': '11',
         'wikipedia': 'https://fr.wikipedia.org/wiki/%C3%8Ele-de-France',
         'surf_km2': 12011,
         'population': 11853000,
-        'insee_ancestors': []
+        'ancestors': []
     }
 }
 
@@ -211,7 +211,8 @@ country_subset.aggregate(
 def extract_french_district(polygon):
     '''
     Extract a french district informations from a MultiPolygon.
-    Based on data from http://www.data.gouv.fr/datasets/contours-des-arrondissements-francais-issus-d-openstreetmap/
+    Based on data from:
+    http://www.data.gouv.fr/datasets/contours-des-arrondissements-francais-issus-d-openstreetmap/
     '''
     props = polygon['properties']
     code = props['insee_ar'].lower()
@@ -254,7 +255,8 @@ def extract_french_epci(polygon):
 def extract_french_county(polygon):
     '''
     Extract a french county informations from a MultiPolygon.
-    Based on data from http://www.data.gouv.fr/datasets/contours-des-departements-francais-issus-d-openstreetmap/
+    Based on data from:
+    http://www.data.gouv.fr/datasets/contours-des-departements-francais-issus-d-openstreetmap/
     '''
     props = polygon['properties']
     name = props['nom']
@@ -287,7 +289,8 @@ def extract_overseas_county(polygon):
             'name': unicodify(name),
             'population': props['POP2005'],
             'area': int(props['AREA']),
-            'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+            'parents': ['country/fr', 'country-group/ue',
+                        'country-group/world'],
             'keys': {
                 'insee': code,
                 'iso2': iso,
@@ -297,11 +300,41 @@ def extract_overseas_county(polygon):
         }
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-2016-shp.zip')
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')
 def extract_french_region(polygon):
     '''
     Extract a french region informations from a MultiPolygon.
-    Based on data from https://www.data.gouv.fr/fr/datasets/projet-de-redecoupages-des-regions/
+    Based on data from:
+    http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/
+    '''
+    props = polygon['properties']
+    # Do not insert if there is a new region with the same name.
+    if props['nom'] in FR_NEW_REGIONS.keys():
+        return {}
+    return {
+        'code': props['code_insee'],
+        'name': unicodify(props['nom']),
+        'area': props['surf_km2'],
+        'wikipedia': unicodify(props['wikipedia']),
+        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+        'keys': {
+            'insee': props['code_insee'],
+            'nuts2': props['nuts2'],
+            'iso3166_2': props['iso3166_2']
+        },
+        'validity': {
+            'start': '1956-01-01',
+            'end': '2015-12-31'
+        }
+    }
+
+
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-2016-shp.zip')
+def extract_new_french_region(polygon):
+    '''
+    Extract new french region informations from a MultiPolygon.
+    Based on data from:
+    https://www.data.gouv.fr/fr/datasets/projet-de-redecoupages-des-regions/
     '''
     props = polygon['properties']
     name = props['name']
@@ -314,8 +347,12 @@ def extract_french_region(polygon):
         'wikipedia': unicodify(props['wikipedia']),
         'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
         'keys': {
-            'insee': props['code_insee'],
-            'insee_ancestors': props['insee_ancestors']
+            'insee': props['code_insee']
+        },
+        'ancestors': props['ancestors'],
+        'validity': {
+            'start': '2016-01-01',
+            'end': ''
         }
     }
 
@@ -324,7 +361,8 @@ def extract_french_region(polygon):
 def extract_french_town(polygon):
     '''
     Extract a french town informations from a MultiPolygon.
-    Based on data from http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    Based on data from:
+    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
     code = props['insee'].lower()
@@ -344,7 +382,8 @@ def extract_french_town(polygon):
 def extract_french_arrondissements(polygon):
     '''
     Extract a french arrondissements informations from a MultiPolygon.
-    Based on data from http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    Based on data from:
+    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
     code = props['insee'].lower()
@@ -364,7 +403,8 @@ def extract_french_arrondissements(polygon):
 def extract_french_canton(polygon):
     '''
     Extract a french canton informations from a MultiPolygon.
-    Based on data from http://www.data.gouv.fr/fr/datasets/contours-osm-des-cantons-electoraux-departementaux-2015/
+    Based on data from:
+    http://www.data.gouv.fr/fr/datasets/contours-osm-des-cantons-electoraux-departementaux-2015/
     '''
     props = polygon['properties']
     code = props['ref'].lower()
@@ -375,7 +415,8 @@ def extract_french_canton(polygon):
         'name': unicodify(props['nom']),
         'population': props['population'],
         'wikipedia': unicodify(props['wikipedia']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world', county_id],
+        'parents': ['country/fr', 'country-group/ue', 'country-group/world',
+                    county_id],
         'keys': {
             'ref': code,
             'jorf': props['jorf']
@@ -386,7 +427,8 @@ def extract_french_canton(polygon):
 @iris.extractor('https://www.data.gouv.fr/s/resources/contour-des-iris-insee-tout-en-un/20150428-161348/iris-2013-01-01.zip')
 def extract_iris(polygon):
     '''
-    Extract French IrisBased on data from http://professionnels.ign.fr/contoursiris
+    Extract French IrisBased on data from:
+    http://professionnels.ign.fr/contoursiris
     '''
     props = polygon['properties']
     code = props['DCOMIRIS']
@@ -396,7 +438,8 @@ def extract_iris(polygon):
     return {
         'code': code,
         'name': name,
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world', town_id],
+        'parents': ['country/fr', 'country-group/ue', 'country-group/world',
+                    town_id],
         '_type': props['TYP_IRIS'],
         'keys': {
             'iris': code
@@ -408,7 +451,8 @@ def extract_iris(polygon):
 @town.postprocessor('http://datanova.legroupe.laposte.fr/explore/dataset/laposte_hexasmal/download/?format=csv&timezone=Europe/Berlin&use_labels_for_header=true')
 def process_postal_codes(db, filename):
     '''
-    Extract postal codes from https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/
+    Extract postal codes from:
+    https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/
     '''
     info('Processing french postal codes')
     processed = 0
@@ -426,7 +470,8 @@ def process_postal_codes(db, filename):
 @epci.postprocessor('http://www.collectivites-locales.gouv.fr/files/files/epcicom2015.csv')
 def attach_epci(db, filename):
     '''
-    Attach EPCI towns to their EPCI from http://www.collectivites-locales.gouv.fr/liste-et-composition-2015
+    Attach EPCI towns to their EPCI from:
+    http://www.collectivites-locales.gouv.fr/liste-et-composition-2015
     '''
     info('Processing EPCI town list')
     processed = 0
@@ -548,7 +593,8 @@ def town_with_districts(db, filename):
     result = db.update_many(
         {'_id': {'$in': MARSEILLE_DISTRICTS}},
         {'$addToSet': {'parents': {'$each': parents}}})
-    success('Attached {0} districts to Marseille'.format(result.modified_count))
+    success('Attached {0} districts to Marseille'.format(
+        result.modified_count))
 
     info('Attaching Lyon town districts')
     lyon = db.find_one({'_id': 'fr/commune/69123'})
@@ -590,7 +636,7 @@ def fetch_missing_data_from_dbpedia(db, filename):
 def compute_town_with_districts_population(db, filename):
     info('Computing Paris town districts population')
     districts = db.find({'_id': {'$in': PARIS_DISTRICTS}})
-    population = sum(district['population'] for district in districts)
+    population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
         {'_id': 'fr/commune/75056'},
         {'$set': {'population': population}})
@@ -598,7 +644,7 @@ def compute_town_with_districts_population(db, filename):
 
     info('Computing Marseille town districts population')
     districts = db.find({'_id': {'$in': MARSEILLE_DISTRICTS}})
-    population = sum(district['population'] for district in districts)
+    population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
         {'_id': 'fr/commune/13055'},
         {'$set': {'population': population}})
@@ -606,7 +652,7 @@ def compute_town_with_districts_population(db, filename):
 
     info('Computing Lyon town districts population')
     districts = db.find({'_id': {'$in': LYON_DISTRICTS}})
-    population = sum(district['population'] for district in districts)
+    population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
         {'_id': 'fr/commune/69123'},
         {'$set': {'population': population}})
@@ -622,7 +668,8 @@ def attach_counties_to_subcountries(db, filename):
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/metro'}}
     )
-    success('Attached {0} French Metropolitan children'.format(result.modified_count))
+    success('Attached {0} French Metropolitan children'.format(
+        result.modified_count))
 
     info('Attaching French DOM counties')
     ids = ['fr/departement/{0}' .format(c) for c in FR_DOM_COUNTIES]
@@ -638,7 +685,8 @@ def attach_counties_to_subcountries(db, filename):
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/domtom'}}
     )
-    success('Attached {0} French DOM/TOM children'.format(result.modified_count))
+    success('Attached {0} French DOM/TOM children'.format(
+        result.modified_count))
 
 
 @canton.postprocessor()
@@ -646,7 +694,8 @@ def attach_canton_parents(db, filename):
     info('Attaching French Canton to their parents')
     canton_processed = 0
     for zone in db.find({'level': canton.id}):
-        candidates_ids = [p for p in zone['parents'] if p.startswith(county.id)]
+        candidates_ids = [p for p in zone['parents']
+                          if p.startswith(county.id)]
         if len(candidates_ids) < 1:
             warning('No parent candidate found for: {0}'.format(zone['_id']))
             continue
@@ -659,7 +708,8 @@ def attach_canton_parents(db, filename):
         if db.find_one_and_update({'_id': zone['_id']}, ops):
             canton_processed += 1
 
-    success('Attached {0} french cantons to their parents'.format(canton_processed))
+    success('Attached {0} french cantons to their parents'.format(
+        canton_processed))
 
 
 @iris.postprocessor()
@@ -731,7 +781,8 @@ def compute_county_area_and_population(db, filename):
                     'population': result['population']
                 }}):
             processed += 1
-    success('Computed area and population for {0} french counties'.format(processed))
+    success('Computed area and population for {0} french counties'.format(
+        processed))
 
 
 @region.postprocessor()

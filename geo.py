@@ -76,13 +76,17 @@ class Level(object):
                 children.extend(level.children)
             levels, children = children, []
 
-    def load(self, workdir, db):
+    def load(self, workdir, db, only=None, exclude=None):
         '''
         Extract territories from a given file for a given level
         with a given extractor function.
         '''
         loaded = 0
         for url, extractor in self.extractors:
+            if only is not None and extractor.__name__ != only:
+                continue
+            if exclude is not None and extractor.__name__ == exclude:
+                continue
             loaded += self.process_dataset(workdir, db, url, extractor)
         success('Loaded {0} zones for level {1}'.format(loaded, self.id))
         return loaded

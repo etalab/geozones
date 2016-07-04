@@ -60,7 +60,8 @@ def cli(ctx, level, home):
 @click.pass_context
 def download(ctx):
     '''Download sources datasets'''
-    title('Downloading required datasets, takes about 5 minutes')
+    title(('Downloading required datasets, takes about 5 minutes depending '
+           'on your connexion bandwidth.'))
     if not exists(DL_DIR):
         os.makedirs(DL_DIR)
 
@@ -86,9 +87,13 @@ def download(ctx):
 @cli.command()
 @click.pass_context
 @click.option('-d', '--drop', is_flag=True)
-def load(ctx, drop):
+@click.option('-o', '--only', default=None)
+@click.option('-e', '--exclude', default=None)
+def load(ctx, drop, only, exclude):
     '''Load zones from a folder of zip files containing shapefiles'''
     title('Extracting zones from datasets, takes about 15 minutes')
+    title(('Excluding `extract_iris` with the `-e` option will reduce '
+           'the duration to 5 minutes.'))
     zones = DB()
 
     if drop:
@@ -106,7 +111,7 @@ def load(ctx, drop):
 
     for level in ctx.obj['levels']:
         info('Processing level "{0}"'.format(level.id))
-        total += level.load(DL_DIR, zones)
+        total += level.load(DL_DIR, zones, only, exclude)
 
     success('Done: Loaded {0} zones'.format(total))
 
@@ -136,6 +141,8 @@ def postprocess(ctx, only, exclude):
     title(('Take care of the order, especially `process_insee_cog` and '
            '`compute_region_population` might need to be run again with '
            'the `-o` option.'))
+    title(('Excluding `fetch_missing_data_from_dbpedia` with the `-e` '
+           'option will reduce the duration to 2 minutes.'))
     zones = DB()
 
     for level in ctx.obj['levels']:

@@ -17,7 +17,9 @@ def zone_to_feature(zone, keys):
         'flag': unicodify(zone.get('flag', '')) or None,
         'blazon': unicodify(zone.get('blazon', '')) or None,
         'keys': zone.get('keys', {}),
-        'parents': zone.get('parents', [])
+        'validity': zone.get('validity', {}),
+        'parents': zone.get('parents', []),
+        'ancestors': zone.get('ancestors', [])
     }
     if keys is not None:
         for unwanted_key in set(properties.keys()) - set(keys):
