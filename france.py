@@ -50,6 +50,128 @@ FR_DOMTOM_COUNTIES = (
     '987', '988'
 )
 
+FR_NEW_REGIONS = {
+    'Alsace, Champagne-Ardenne et Lorraine': {
+        'code_insee': '44',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Alsace-Champagne-Ardenne-Lorraine',
+        'surf_km2': 57433,
+        'population': 5545000,
+        'insee_ancestors': [21, 41, 42]
+    },
+    'Aquitaine, Limousin et Poitou-Charentes': {
+        'code_insee': '75',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Aquitaine-Limousin-Poitou-Charentes',
+        'surf_km2': 84061,
+        'population': 5773000,
+        'insee_ancestors': [72, 54, 74]
+    },
+    'Auvergne et Rhône-Alpes': {
+        'code_insee': '84',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Auvergne-Rh%C3%B4ne-Alpes',
+        'surf_km2': 69711,
+        'population': 7634000,
+        'insee_ancestors': [83, 82]
+    },
+    'Bourgogne et Franche-Comté': {
+        'code_insee': '27',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Bourgogne-Franche-Comt%C3%A9',
+        'surf_km2': 47784,
+        'population': 2816000,
+        'insee_ancestors': [26, 43]
+    },
+    'Bretagne': {
+        'code_insee': '53',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/R%C3%A9gion_Bretagne',
+        'surf_km2': 27208,
+        'population': 3218000,
+        'insee_ancestors': []
+    },
+    'Centre-Val de Loire': {
+        'code_insee': '24',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Centre-Val_de_Loire',
+        'surf_km2': 39151,
+        'population': 2556835,
+        'insee_ancestors': []
+    },
+    'Corse': {
+        'code_insee': '94',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Corse',
+        'surf_km2': 8680,
+        'population': 322000,
+        'insee_ancestors': []
+    },
+    'Guadeloupe': {
+        'code_insee': '01',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Guadeloupe',
+        'surf_km2': 1628,
+        'population': 404635,
+        'insee_ancestors': []
+    },
+    'Guyane': {
+        'code_insee': '03',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Guyane',
+        'surf_km2': 83534,
+        'population': 237549,
+        'insee_ancestors': []
+    },
+    'La Réunion': {
+        'code_insee': '04',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/La_R%C3%A9union',
+        'surf_km2': 2504,
+        'population': 828581,
+        'insee_ancestors': []
+    },
+    'Languedoc-Roussillon et Midi-Pyrénées': {
+        'code_insee': '76',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Languedoc-Roussillon-Midi-Pyr%C3%A9n%C3%A9es',
+        'surf_km2': 72724,
+        'population': 5573000,
+        'insee_ancestors': [91, 73]
+    },
+    'Martinique': {
+        'code_insee': '02',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Martinique',
+        'surf_km2': 1128,
+        'population': 392291,
+        'insee_ancestors': []
+    },
+    'Nord-Pas-de-Calais et Picardie': {
+        'code_insee': '32',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Nord-Pas-de-Calais-Picardie',
+        'surf_km2': 31813,
+        'population': 5960000,
+        'insee_ancestors': [31, 22]
+    },
+    'Normandie': {
+        'code_insee': '28',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/R%C3%A9gion_Normandie',
+        'surf_km2': 29906,
+        'population': 3315000,
+        'insee_ancestors': [23, 25]
+    },
+    'Pays de la Loire': {
+        'code_insee': '52',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Pays_de_la_Loire',
+        'surf_km2': 32082,
+        'population': 3601113,
+        'insee_ancestors': []
+    },
+    "Provence-Alpes-Côte d'Azur": {
+        'code_insee': '93',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/Provence-Alpes-C%C3%B4te_d%27Azur',
+        'surf_km2': 31400,
+        'population': 4916000,
+        'insee_ancestors': []
+    },
+    'Île-de-France': {
+        'code_insee': '11',
+        'wikipedia': 'https://fr.wikipedia.org/wiki/%C3%8Ele-de-France',
+        'surf_km2': 12011,
+        'population': 11853000,
+        'insee_ancestors': []
+    }
+}
+
 
 town.aggregate(
     '75056', 'Paris', PARIS_DISTRICTS,
@@ -175,24 +297,25 @@ def extract_overseas_county(polygon):
         }
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-2016-shp.zip')
 def extract_french_region(polygon):
     '''
     Extract a french region informations from a MultiPolygon.
-    Based on data from http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/
+    Based on data from https://www.data.gouv.fr/fr/datasets/projet-de-redecoupages-des-regions/
     '''
     props = polygon['properties']
-    code = props['code_insee'].lower()
+    name = props['name']
+    props = FR_NEW_REGIONS[name]
     return {
-        'code': code,
-        'name': unicodify(props['nom']),
+        'code': props['code_insee'],
+        'name': unicodify(name),
         'area': props['surf_km2'],
+        'population': props['population'],
         'wikipedia': unicodify(props['wikipedia']),
         'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
         'keys': {
-            'insee': code,
-            'nuts2': props['nuts2'],
-            'iso3166_2': props['iso3166_2'],
+            'insee': props['code_insee'],
+            'insee_ancestors': props['insee_ancestors']
         }
     }
 
