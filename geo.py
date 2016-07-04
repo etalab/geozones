@@ -88,7 +88,7 @@ class Level(object):
             if exclude is not None and extractor.__name__ == exclude:
                 continue
             loaded += self.process_dataset(workdir, db, url, extractor)
-        success('Loaded {0} zones for level {1}'.format(loaded, self.id))
+        success('Loaded {0} zones for level {1}', loaded, self.id)
         return loaded
 
     def process_dataset(self, workdir, db, url, extractor):
@@ -112,18 +112,16 @@ class Level(object):
                         candidates = [candidate]
                         break
             if len(candidates) != 1:
-                raise ValueError((
-                    'Unable to find a unique shapefile into {0} {1}'
-                    '').format(filename, candidates))
+                msg = 'Unable to find a unique shapefile into {0} {1}'
+                raise ValueError(msg.format(filename, candidates))
             shp = candidates[0]
 
         with fiona.open('/{0}'.format(shp),
                         vfs='zip://{0}'.format(filename),
                         encoding='utf8') as collection:
-            info('Extracting {0} elements from {1} ({2} {3})'.format(
-                len(collection), basename(filename), collection.driver,
-                to_string(collection.crs)
-            ))
+            info('Extracting {0} elements from {1} ({2} {3})',
+                 len(collection), basename(filename), collection.driver,
+                 to_string(collection.crs))
 
             for polygon in collection:
                 try:
@@ -139,8 +137,8 @@ class Level(object):
                     if geom.geom_type == 'Polygon':
                         geom = MultiPolygon([geom])
                     elif geom.geom_type != 'MultiPolygon':
-                        warning(('Unsupported geometry type "{0}" for "{1}"'
-                                 '').format(geom.geom_type, zone['name']))
+                        warning('Unsupported geometry type "{0}" for "{1}"',
+                                geom.geom_type, zone['name'])
                         continue
                     zoneid = '/'.join((self.id, zone['code']))
                     zone.update(
@@ -151,15 +149,15 @@ class Level(object):
                     error('Error extracting polygon {0}: {1}',
                           polygon['properties'], str(e))
 
-        info(('Loaded {0} zones for level {1} from file {2}'
-              '').format(loaded, self.id, filename))
+        info('Loaded {0} zones for level {1} from file {2}',
+             loaded, self.id, filename)
         return loaded
 
     def build_aggregates(self, db):
         processed = 0
         for code, name, zones, properties in self.aggregates:
-            info(('Building aggregate "{0}" (level={1}, code={2})'
-                  '').format(name, self.id, code))
+            info('Building aggregate "{0}" (level={1}, code={2})',
+                 name, self.id, code)
             zone = self.build_aggregate(code, name, zones, properties, db)
             db.find_one_and_replace({'_id': zone['_id']}, zone, upsert=True)
             processed += 1
@@ -192,8 +190,7 @@ class Level(object):
                              '').format(zone['name']))
                     continue
                 if shp.is_empty:
-                    warning(('Skipping empty polygon for {0}'
-                             '').format(zone['name']))
+                    warning('Skipping empty polygon for {0}', zone['name'])
                     continue
                 geoms.append(shp)
                 if zone.get('population'):

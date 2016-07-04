@@ -8,7 +8,8 @@ _ = lambda s: s
 def extract_country2(polygon):
     '''
     Extract a country information from single MultiPolygon.
-    Based on data from http://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/
+    Based on data from:
+    http://www.naturalearthdata.com/downloads/110m-cultural-vectors/110m-admin-0-countries/
 
     The main unique code used is ISO2.
     '''
@@ -51,5 +52,5 @@ def add_ue_to_parents(db, filename):
     result = db.update_many(
         {'level': country.id, 'code': {'$in': UE_COUNTRIES}},
         {'$addToSet': {'parents': 'country-group/ue'}})
-    success(('Added European Union as parent to {0} countries'
-             '').format(result.modified_count))
+    success('Added European Union as parent to {0} countries',
+            result.modified_count)

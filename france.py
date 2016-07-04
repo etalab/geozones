@@ -192,7 +192,7 @@ town.aggregate(
     keys={'insee': '69123'})
 
 country_subset.aggregate(
-    'fr/metro', _('Metropolitan France'),
+    'fr/metropole', _('Metropolitan France'),
     ['fr/departement/{0}'.format(code) for code in FR_METRO_COUNTIES],
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
@@ -351,8 +351,7 @@ def extract_new_french_region(polygon):
         },
         'ancestors': props['ancestors'],
         'validity': {
-            'start': '2016-01-01',
-            'end': ''
+            'start': '2016-01-01'
         }
     }
 
@@ -464,7 +463,7 @@ def process_postal_codes(db, filename):
             ops = {'$addToSet': {'keys.postal': postal}}
             if db.find_one_and_update({'level': town.id, 'code': insee}, ops):
                 processed += 1
-    success('Processed {0} french postal codes'.format(processed))
+    success('Processed {0} french postal codes', processed)
 
 
 @epci.postprocessor('http://www.collectivites-locales.gouv.fr/files/files/epcicom2015.csv')
@@ -488,7 +487,7 @@ def attach_epci(db, filename):
                     {'level': town.id, 'code': insee},
                     {'$addToSet': {'parents': epci_id}}):
                 processed += 1
-    success('Attached {0} french town to their EPCI'.format(processed))
+    success('Attached {0} french town to their EPCI', processed)
 
     # info('Attach EPCI to counties and regions')
     # processed = 0
@@ -502,7 +501,7 @@ def attach_epci(db, filename):
     #     if db.find_one_and_update({'_id': result['_id']},
     #         {'$set': {'population': result['population']}}):
     #         processed += 1
-    # success('Computed population for {0} french districts'.format(processed))
+    # success('Computed population for {0} french districts', processed)
 
     # processed = 0
     # for siren, region in epci_region.items():
@@ -511,7 +510,7 @@ def attach_epci(db, filename):
     #     if db.find_one_and_update({'level': epci.id, 'code': siren},
     #         {'$addToSet': {'parents': region_id, 'parents': region_id}}):
     #         processed += 1
-    # success('Attached {0} french EPCI to their region'.format(processed))
+    # success('Attached {0} french EPCI to their region', processed)
 
 
 @town.postprocessor('http://www.insee.fr/fr/methodes/nomenclatures/cog/telechargement/2016/txt/comsimp2016.zip')
@@ -554,7 +553,7 @@ def process_insee_cog(db, filename):
                         {'level': town.id, 'code': insee_code},
                         {'$addToSet': {'parents': {'$each': parents}}}):
                     processed += 1
-    success('Attached {0} french towns to their parents'.format(processed))
+    success('Attached {0} french towns to their parents', processed)
 
     processed = 0
     for district_id, parents in districts.items():
@@ -564,7 +563,7 @@ def process_insee_cog(db, filename):
                     'parents': {'$each': parents},
                 }}):
             processed += 1
-    success('Attached {0} french districts to their parents'.format(processed))
+    success('Attached {0} french districts to their parents', processed)
 
     processed = 0
     for county_id, parent in counties.items():
@@ -572,7 +571,7 @@ def process_insee_cog(db, filename):
                 {'_id': county_id},
                 {'$addToSet': {'parents': parent}}):
             processed += 1
-    success('Attached {0} french counties to their parents'.format(processed))
+    success('Attached {0} french counties to their parents', processed)
 
 
 @town.postprocessor()
@@ -584,7 +583,7 @@ def town_with_districts(db, filename):
     result = db.update_many(
         {'_id': {'$in': PARIS_DISTRICTS}},
         {'$addToSet': {'parents': {'$each': parents}}})
-    success('Attached {0} districts to Paris'.format(result.modified_count))
+    success('Attached {0} districts to Paris', result.modified_count)
 
     info('Attaching Marseille town districts')
     marseille = db.find_one({'_id': 'fr/commune/13055'})
@@ -593,8 +592,7 @@ def town_with_districts(db, filename):
     result = db.update_many(
         {'_id': {'$in': MARSEILLE_DISTRICTS}},
         {'$addToSet': {'parents': {'$each': parents}}})
-    success('Attached {0} districts to Marseille'.format(
-        result.modified_count))
+    success('Attached {0} districts to Marseille', result.modified_count)
 
     info('Attaching Lyon town districts')
     lyon = db.find_one({'_id': 'fr/commune/69123'})
@@ -603,7 +601,7 @@ def town_with_districts(db, filename):
     result = db.update_many(
         {'_id': {'$in': LYON_DISTRICTS}},
         {'$addToSet': {'parents': {'$each': parents}}})
-    success('Attached {0} districts to Lyon'.format(result.modified_count))
+    success('Attached {0} districts to Lyon', result.modified_count)
 
 
 @town.postprocessor()
@@ -629,7 +627,7 @@ def fetch_missing_data_from_dbpedia(db, filename):
         if db.find_one_and_update({'_id': zone['_id']},
                                   {'$set': metadata}):
             processed += 1
-    success('Fetched DBPedia data for {0} zones'.format(processed))
+    success('Fetched DBPedia data for {0} zones', processed)
 
 
 @town.postprocessor()
@@ -668,8 +666,7 @@ def attach_counties_to_subcountries(db, filename):
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/metro'}}
     )
-    success('Attached {0} French Metropolitan children'.format(
-        result.modified_count))
+    success('Attached {0} French Metropolitan children', result.modified_count)
 
     info('Attaching French DOM counties')
     ids = ['fr/departement/{0}' .format(c) for c in FR_DOM_COUNTIES]
@@ -677,7 +674,7 @@ def attach_counties_to_subcountries(db, filename):
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/dom'}}
     )
-    success('Attached {0} French DOM children'.format(result.modified_count))
+    success('Attached {0} French DOM children', result.modified_count)
 
     info('Attaching French DOM/TOM counties')
     ids = ['fr/departement/{0}' .format(c) for c in FR_DOMTOM_COUNTIES]
@@ -685,8 +682,7 @@ def attach_counties_to_subcountries(db, filename):
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/domtom'}}
     )
-    success('Attached {0} French DOM/TOM children'.format(
-        result.modified_count))
+    success('Attached {0} French DOM/TOM children', result.modified_count)
 
 
 @canton.postprocessor()
@@ -697,7 +693,7 @@ def attach_canton_parents(db, filename):
         candidates_ids = [p for p in zone['parents']
                           if p.startswith(county.id)]
         if len(candidates_ids) < 1:
-            warning('No parent candidate found for: {0}'.format(zone['_id']))
+            warning('No parent candidate found for: {0}', zone['_id'])
             continue
         county_id = candidates_ids[0]
         county_zone = db.find_one({'_id': county_id})
@@ -708,8 +704,7 @@ def attach_canton_parents(db, filename):
         if db.find_one_and_update({'_id': zone['_id']}, ops):
             canton_processed += 1
 
-    success('Attached {0} french cantons to their parents'.format(
-        canton_processed))
+    success('Attached {0} french cantons to their parents', canton_processed)
 
 
 @iris.postprocessor()
@@ -719,12 +714,12 @@ def attach_and_clean_iris(db, filename):
     for zone in db.find({'level': iris.id}):
         candidates_ids = [p for p in zone['parents'] if p.startswith(town.id)]
         if len(candidates_ids) < 1:
-            warning('No parent candidate found for: {0}'.format(zone['_id']))
+            warning('No parent candidate found for: {0}', zone['_id'])
             continue
         town_id = candidates_ids[0]
         town_zone = db.find_one({'_id': town_id})
         if not town_zone:
-            warning('Town {0} not found'.format(town_id))
+            warning('Town {0} not found', town_id)
             continue
         if zone.get('_type') == 'Z':
             name = town_zone['name']
@@ -737,7 +732,7 @@ def attach_and_clean_iris(db, filename):
         }
         if db.find_one_and_update({'_id': zone['_id']}, ops):
             processed += 1
-    success('Attached {0} french IRIS to their parents'.format(processed))
+    success('Attached {0} french IRIS to their parents', processed)
 
 
 @district.postprocessor()
@@ -756,7 +751,7 @@ def compute_district_population(db, filename):
                     {'_id': result['_id']},
                     {'$set': {'population': result['population']}}):
                 processed += 1
-    success('Computed population for {0} french districts'.format(processed))
+    success('Computed population for {0} french districts', processed)
 
 
 @county.postprocessor()
@@ -781,8 +776,7 @@ def compute_county_area_and_population(db, filename):
                     'population': result['population']
                 }}):
             processed += 1
-    success('Computed area and population for {0} french counties'.format(
-        processed))
+    success('Computed area and population for {0} french counties', processed)
 
 
 @region.postprocessor()
@@ -801,4 +795,4 @@ def compute_region_population(db, filename):
                     {'_id': result['_id']},
                     {'$set': {'population': result['population']}}):
                 processed += 1
-    success('Computed population for {0} french regions'.format(processed))
+    success('Computed population for {0} french regions', processed)
