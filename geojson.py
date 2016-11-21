@@ -20,6 +20,7 @@ def zone_to_feature(zone, keys):
         'validity': zone.get('validity', {}),
         'parents': zone.get('parents', []),
         'ancestors': zone.get('ancestors', []),
+        'successors': zone.get('successors', []),
     }
     if keys is not None:
         for unwanted_key in set(properties.keys()) - set(keys):

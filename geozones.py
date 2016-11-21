@@ -60,8 +60,8 @@ def cli(ctx, level, home):
 @click.pass_context
 def download(ctx):
     '''Download sources datasets'''
-    title(('Downloading required datasets, takes about 5 minutes depending '
-           'on your connexion bandwidth.'))
+    title(('Downloading required datasets (~700Mb), '
+           'takes about 15 minutes depending on your connexion bandwidth.'))
     if not exists(DL_DIR):
         os.makedirs(DL_DIR)
 

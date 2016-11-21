@@ -50,129 +50,6 @@ FR_DOMTOM_COUNTIES = (
     '987', '988'
 )
 
-FR_NEW_REGIONS = {
-    'Alsace, Champagne-Ardenne et Lorraine': {
-        'code_insee': '44',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Alsace-Champagne-Ardenne-Lorraine',
-        'surf_km2': 57433,
-        'population': 5545000,
-        'ancestors': ['fr/region/21', 'fr/region/41', 'fr/region/42']
-    },
-    'Aquitaine, Limousin et Poitou-Charentes': {
-        'code_insee': '75',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Aquitaine-Limousin-Poitou-Charentes',
-        'surf_km2': 84061,
-        'population': 5773000,
-        'ancestors': ['fr/region/72', 'fr/region/54', 'fr/region/74']
-    },
-    'Auvergne et Rhône-Alpes': {
-        'code_insee': '84',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Auvergne-Rh%C3%B4ne-Alpes',
-        'surf_km2': 69711,
-        'population': 7634000,
-        'ancestors': ['fr/region/83', 'fr/region/82']
-    },
-    'Bourgogne et Franche-Comté': {
-        'code_insee': '27',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Bourgogne-Franche-Comt%C3%A9',
-        'surf_km2': 47784,
-        'population': 2816000,
-        'ancestors': ['fr/region/26', 'fr/region/43']
-    },
-    'Bretagne': {
-        'code_insee': '53',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/R%C3%A9gion_Bretagne',
-        'surf_km2': 27208,
-        'population': 3218000,
-        'ancestors': []
-    },
-    'Centre-Val de Loire': {
-        'code_insee': '24',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Centre-Val_de_Loire',
-        'surf_km2': 39151,
-        'population': 2556835,
-        'ancestors': []
-    },
-    'Corse': {
-        'code_insee': '94',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Corse',
-        'surf_km2': 8680,
-        'population': 322000,
-        'ancestors': []
-    },
-    'Guadeloupe': {
-        'code_insee': '01',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Guadeloupe',
-        'surf_km2': 1628,
-        'population': 404635,
-        'ancestors': []
-    },
-    'Guyane': {
-        'code_insee': '03',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Guyane',
-        'surf_km2': 83534,
-        'population': 237549,
-        'ancestors': []
-    },
-    'La Réunion': {
-        'code_insee': '04',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/La_R%C3%A9union',
-        'surf_km2': 2504,
-        'population': 828581,
-        'ancestors': []
-    },
-    'Languedoc-Roussillon et Midi-Pyrénées': {
-        'code_insee': '76',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Languedoc-Roussillon-Midi-Pyr%C3%A9n%C3%A9es',
-        'surf_km2': 72724,
-        'population': 5573000,
-        'ancestors': ['fr/region/91', 'fr/region/73']
-    },
-    'Martinique': {
-        'code_insee': '02',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Martinique',
-        'surf_km2': 1128,
-        'population': 392291,
-        'ancestors': []
-    },
-    'Nord-Pas-de-Calais et Picardie': {
-        'code_insee': '32',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Nord-Pas-de-Calais-Picardie',
-        'surf_km2': 31813,
-        'population': 5960000,
-        'ancestors': ['fr/region/31', 'fr/region/22']
-    },
-    'Normandie': {
-        'code_insee': '28',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/R%C3%A9gion_Normandie',
-        'surf_km2': 29906,
-        'population': 3315000,
-        'ancestors': ['fr/region/23', 'fr/region/25']
-    },
-    'Pays de la Loire': {
-        'code_insee': '52',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Pays_de_la_Loire',
-        'surf_km2': 32082,
-        'population': 3601113,
-        'ancestors': []
-    },
-    "Provence-Alpes-Côte d'Azur": {
-        'code_insee': '93',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/Provence-Alpes-C%C3%B4te_d%27Azur',
-        'surf_km2': 31400,
-        'population': 4916000,
-        'ancestors': []
-    },
-    'Île-de-France': {
-        'code_insee': '11',
-        'wikipedia': 'https://fr.wikipedia.org/wiki/%C3%8Ele-de-France',
-        'surf_km2': 12011,
-        'population': 11853000,
-        'ancestors': []
-    }
-}
-
-
 town.aggregate(
     '75056', 'Paris', PARIS_DISTRICTS,
     parents=['country/fr', 'country-group/ue', 'country-group/world',
@@ -300,36 +177,19 @@ def extract_overseas_county(polygon):
         }
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')
-def extract_french_region(polygon):
-    '''
-    Extract a french region informations from a MultiPolygon.
-    Based on data from:
-    http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/
-    '''
-    props = polygon['properties']
-    # Do not insert if there is a new region with the same name.
-    if props['nom'] in FR_NEW_REGIONS.keys():
-        return {}
-    return {
-        'code': props['code_insee'],
-        'name': unicodify(props['nom']),
-        'area': props['surf_km2'],
-        'wikipedia': unicodify(props['wikipedia']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
-        'keys': {
-            'insee': props['code_insee'],
-            'nuts2': props['nuts2'],
-            'iso3166_2': props['iso3166_2']
-        },
-        'validity': {
-            'start': '1956-01-01',
-            'end': '2015-12-31'
-        }
-    }
+def preprocess_regions_from(filename):
+    result = {}
+    with open(filename) as regions:
+        for region in csv.DictReader(regions, delimiter=','):
+            result[region['insee_code']] = region
+    return result
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-2016-shp.zip')
+# TODO: grab directly from Github?
+_regions = preprocess_regions_from('../geohisto/exports/regions/regions.csv')
+
+
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.05)
 def extract_new_french_region(polygon):
     '''
     Extract new french region informations from a MultiPolygon.
@@ -337,21 +197,53 @@ def extract_new_french_region(polygon):
     https://www.data.gouv.fr/fr/datasets/projet-de-redecoupages-des-regions/
     '''
     props = polygon['properties']
-    name = props['name']
-    props = FR_NEW_REGIONS[name]
+    region = _regions[props['code_insee']]
     return {
-        'code': props['code_insee'],
-        'name': unicodify(name),
-        'area': props['surf_km2'],
-        'population': props['population'],
-        'wikipedia': unicodify(props['wikipedia']),
+        'id': region['id'],
+        'code': region['insee_code'],
+        'name': unicodify(region['name']),
+        'area': region['surface'],
+        'population': region['population'],
+        'wikipedia': unicodify(region['wikipedia']),
         'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
         'keys': {
-            'insee': props['code_insee']
+            'insee': region['insee_code'],
+            'nuts2': region['nuts_code']
         },
-        'ancestors': props['ancestors'],
+        'ancestors': region['ancestors'].split(';'),
         'validity': {
-            'start': '2016-01-01'
+            'start': region['start_datetime'],
+            'end': region['end_datetime']
+        }
+    }
+
+
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')
+def extract_old_french_region(polygon):
+    '''
+    Extract a french region informations from a MultiPolygon.
+    Based on data from:
+    http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/
+    '''
+    props = polygon['properties']
+    code_insee = props['code_insee']
+    region = _regions[code_insee]
+    return {
+        'id': region['id'],
+        'code': region['insee_code'],
+        'name': unicodify(region['name']),
+        'area': region['surface'],
+        'population': region['population'],
+        'wikipedia': unicodify(region['wikipedia']),
+        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+        'keys': {
+            'insee': region['insee_code'],
+            'nuts2': region['nuts_code']
+        },
+        'successors': region['successors'].split(';'),
+        'validity': {
+            'start': region['start_datetime'],
+            'end': region['end_datetime']
         }
     }
 

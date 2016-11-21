@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import traceback
 from os.path import join, basename
 from zipfile import ZipFile
 
@@ -145,9 +146,10 @@ class Level(object):
                         _id=zoneid, level=self.id, geom=geom.__geo_interface__)
                     db.find_one_and_replace({'_id': zoneid}, zone, upsert=True)
                     loaded += 1
-                except Exception as e:
-                    error('Error extracting polygon {0}: {1}',
-                          polygon['properties'], str(e))
+                except Exception:
+                    error(traceback.format_exc())
+                    error('Error extracting polygon {0}',
+                          polygon['properties'])
 
         info('Loaded {0} zones for level {1} from file {2}',
              loaded, self.id, filename)
