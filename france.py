@@ -189,7 +189,7 @@ def preprocess_regions_from(filename):
 _regions = preprocess_regions_from('../geohisto/exports/regions/regions.csv')
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.05)
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.01)
 def extract_new_french_region(polygon):
     '''
     Extract new french region informations from a MultiPolygon.
@@ -405,7 +405,7 @@ def attach_epci(db, filename):
     # success('Attached {0} french EPCI to their region', processed)
 
 
-@town.postprocessor('http://www.insee.fr/fr/methodes/nomenclatures/cog/telechargement/2016/txt/comsimp2016.zip')
+@town.postprocessor('https://www.insee.fr/fr/statistiques/fichier/2114819/france2016-txt.zip')
 def process_insee_cog(db, filename):
     '''Use informations from INSEE COG to attach parents.
     http://www.insee.fr/fr/methodes/nomenclatures/cog/telechargement.asp
@@ -415,7 +415,7 @@ def process_insee_cog(db, filename):
     counties = {}
     districts = {}
     with ZipFile(filename) as cogzip:
-        with cogzip.open('comsimp2016.txt') as tsvfile:
+        with cogzip.open('france2016.txt') as tsvfile:
             tsvio = io.TextIOWrapper(tsvfile, encoding='cp1252')
             reader = csv.DictReader(tsvio, delimiter='\t')
             for row in reader:
