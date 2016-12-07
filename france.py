@@ -1,5 +1,7 @@
 import csv
 import io
+from collections import defaultdict
+from datetime import datetime
 from zipfile import ZipFile
 
 from geo import Level, country, country_subset
@@ -84,7 +86,7 @@ country_subset.aggregate(
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
 
-@district.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')
+@district.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
 def extract_french_district(polygon):
     '''
     Extract a french district informations from a MultiPolygon.
@@ -105,7 +107,7 @@ def extract_french_district(polygon):
     }
 
 
-@epci.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/epci-20150303-100m-shp.zip')
+@epci.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/epci-20150303-100m-shp.zip')  # NOQA
 def extract_french_epci(polygon):
     '''
     Extract a french EPCI informations from a MultiPolygon.
@@ -128,7 +130,19 @@ def extract_french_epci(polygon):
     }
 
 
-@county.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20140306-100m-shp.zip')
+def preprocess_counties(filename):
+    result = defaultdict(list)
+    with open(filename) as counties:
+        for county in csv.DictReader(counties):
+            result[county['insee_code']].append(county)
+    return result
+
+
+# TODO: grab directly from Github?
+_counties = preprocess_counties('../geohisto/exports/counties/counties.csv')
+
+
+@county.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20140306-100m-shp.zip')  # NOQA
 def extract_french_county(polygon):
     '''
     Extract a french county informations from a MultiPolygon.
@@ -136,21 +150,37 @@ def extract_french_county(polygon):
     http://www.data.gouv.fr/datasets/contours-des-departements-francais-issus-d-openstreetmap/
     '''
     props = polygon['properties']
-    name = props['nom']
-    code = props['code_insee'].lower()
+    # Only focus on actual European counties for now.
+    county = [_county for _county in _counties[props['code_insee']]
+              if _county['end_datetime'].startswith('9999')]
+    if not county:
+        return
+    else:
+        county = county[0]
+    parents = ['fr/region/{code}'.format(code=parent[3:5])
+               for parent in county['parents'].split(';')]
+    code = county['insee_code'].lower()
     return {
+        'permid': county['id'],
         'code': code,
-        'name': unicodify(name),
+        'name': unicodify(county['name']),
         'wikipedia': unicodify(props['wikipedia']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+        'parents': (['country/fr', 'country-group/ue', 'country-group/world']
+                    + parents),
         'keys': {
             'insee': code,
             'nuts3': props['nuts3'],
+        },
+        'successors': county['successors'].split(';'),
+        'ancestors': county['ancestors'].split(';'),
+        'validity': {
+            'start': county['start_datetime'].split(' ')[0],
+            'end': county['end_datetime'].split(' ')[0]
         }
     }
 
 
-@county.extractor('http://thematicmapping.org/downloads/TM_WORLD_BORDERS-0.3.zip')
+@county.extractor('http://thematicmapping.org/downloads/TM_WORLD_BORDERS-0.3.zip')  # NOQA
 def extract_overseas_county(polygon):
     '''
     Extract overseas county from their WorldBorder country.
@@ -177,19 +207,19 @@ def extract_overseas_county(polygon):
         }
 
 
-def preprocess_regions_from(filename):
+def preprocess_regions(filename):
     result = {}
     with open(filename) as regions:
-        for region in csv.DictReader(regions, delimiter=','):
+        for region in csv.DictReader(regions):
             result[region['insee_code']] = region
     return result
 
 
 # TODO: grab directly from Github?
-_regions = preprocess_regions_from('../geohisto/exports/regions/regions.csv')
+_regions = preprocess_regions('../geohisto/exports/regions/regions.csv')
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.01)
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.01)  # NOQA
 def extract_new_french_region(polygon):
     '''
     Extract new french region informations from a MultiPolygon.
@@ -199,37 +229,7 @@ def extract_new_french_region(polygon):
     props = polygon['properties']
     region = _regions[props['code_insee']]
     return {
-        'id': region['id'],
-        'code': region['insee_code'],
-        'name': unicodify(region['name']),
-        'area': region['surface'],
-        'population': region['population'],
-        'wikipedia': unicodify(region['wikipedia']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
-        'keys': {
-            'insee': region['insee_code'],
-            'nuts2': region['nuts_code']
-        },
-        'ancestors': region['ancestors'].split(';'),
-        'validity': {
-            'start': region['start_datetime'],
-            'end': region['end_datetime']
-        }
-    }
-
-
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')
-def extract_old_french_region(polygon):
-    '''
-    Extract a french region informations from a MultiPolygon.
-    Based on data from:
-    http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/
-    '''
-    props = polygon['properties']
-    code_insee = props['code_insee']
-    region = _regions[code_insee]
-    return {
-        'id': region['id'],
+        'permid': region['id'],
         'code': region['insee_code'],
         'name': unicodify(region['name']),
         'area': region['surface'],
@@ -241,35 +241,145 @@ def extract_old_french_region(polygon):
             'nuts2': region['nuts_code']
         },
         'successors': region['successors'].split(';'),
+        'ancestors': region['ancestors'].split(';'),
         'validity': {
-            'start': region['start_datetime'],
-            'end': region['end_datetime']
+            'start': region['start_datetime'].split(' ')[0],
+            'end': region['end_datetime'].split(' ')[0]
         }
     }
 
 
-@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip', simplify=0.0005)
-def extract_french_town(polygon):
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')  # NOQA
+def extract_old_french_region(polygon):
+    '''
+    Extract a french region informations from a MultiPolygon.
+    Based on data from:
+    http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/
+    '''
+    props = polygon['properties']
+    code_insee = props['code_insee']
+    region = _regions[code_insee]
+    return {
+        'permid': region['id'],
+        'code': region['insee_code'],
+        'name': unicodify(region['name']),
+        'area': region['surface'],
+        'population': region['population'],
+        'wikipedia': unicodify(region['wikipedia']),
+        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+        'keys': {
+            'insee': region['insee_code'],
+            'nuts2': region['nuts_code']
+        },
+        'successors': region['successors'].split(';'),
+        'ancestors': region['ancestors'].split(';'),
+        'validity': {
+            'start': region['start_datetime'].split(' ')[0],
+            'end': region['end_datetime'].split(' ')[0]
+        }
+    }
+
+
+def preprocess_towns(filename):
+    result = defaultdict(list)
+    with open(filename) as towns:
+        for town in csv.DictReader(towns):
+            result[town['insee_code']].append(town)
+    return result
+
+
+# TODO: grab directly from Github?
+_towns = preprocess_towns('../geohisto/exports/towns/towns.csv')
+_now_str = datetime.now().isoformat(sep=str(' '))
+_old_str = datetime(2015, 1, 2).isoformat(sep=str(' '))
+_2016 = datetime(2016, 1, 1).isoformat(sep=str(' '))
+
+
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip', simplify=0.0005)  # NOQA
+def extract_new_french_town(polygon):
     '''
     Extract a french town informations from a MultiPolygon.
     Based on data from:
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    code = props['insee'].lower()
+    code = props['insee']
+    geohistowns = [t for t in _towns[code]
+                   if t['start_datetime'] <= _now_str <= t['end_datetime']]
+    if not geohistowns:
+        print('Not found now:', props, _towns[code])
+        return {}
+
+    town = geohistowns[0]
+    population = town['population']
+    if population == 'NULL':
+        population = 0
+    parents = ['fr/departement/{code}'.format(code=parent[3:5].lower())
+               for parent in town['parents'].split(';')]
     return {
-        'code': code,
+        'permid': town['id'],
+        'code': code.lower(),
         'name': unicodify(props['nom']),
         'wikipedia': unicodify(props['wikipedia']),
         'area': int(props['surf_ha']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+        'population': population,
+        'parents': (['country/fr', 'country-group/ue', 'country-group/world']
+                    + parents),
         'keys': {
             'insee': code,
+        },
+        'successors': town['successors'].split(';'),
+        'ancestors': town['ancestors'].split(';'),
+        'validity': {
+            'start': town['start_datetime'].split(' ')[0],
+            'end': town['end_datetime'].split(' ')[0]
         }
     }
 
 
-@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-municipaux-20160128-shp.zip')
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20150101-100m-shp.zip')  # NOQA
+def extract_old_french_town(polygon):
+    '''
+    Extract a french town informations from a MultiPolygon.
+    Based on data from:
+    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    '''
+    props = polygon['properties']
+    code = props['insee']
+    geohistowns = [t for t in _towns[code]
+                   if (t['start_datetime'] <= _old_str <= t['end_datetime']
+                       and t['end_datetime'] < _2016)]
+    if not geohistowns:
+        return {}
+
+    town = geohistowns[0]
+    population = town['population']
+    if population == 'NULL':
+        population = 0
+    parents = ['fr/departement/{code}'.format(code=parent[3:5].lower())
+               for parent in town['parents'].split(';')]
+    return {
+        'permid': town['id'],
+        'code': code.lower(),
+        'name': unicodify(props['nom']),
+        'wikipedia': unicodify(props['wikipedia']),
+        'area': int(props['surf_m2']) / 10**6,
+        'population': population,
+        'parents': (['country/fr', 'country-group/ue', 'country-group/world']
+                    + parents),
+        'keys': {
+            'insee': code,
+        },
+        'successors': town['successors'].split(';'),
+        'ancestors': town['ancestors'].split(';'),
+        'validity': {
+            'start': town['start_datetime'].split(' ')[0],
+            'end': town['end_datetime'].split(' ')[0]
+        }
+    }
+
+
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-municipaux-20160128-shp.zip')  # NOQA
 def extract_french_arrondissements(polygon):
     '''
     Extract a french arrondissements informations from a MultiPolygon.
@@ -290,7 +400,7 @@ def extract_french_arrondissements(polygon):
     }
 
 
-@canton.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/cantons-2015-shp.zip', simplify=0.005)
+@canton.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/cantons-2015-shp.zip', simplify=0.005)  # NOQA
 def extract_french_canton(polygon):
     '''
     Extract a french canton informations from a MultiPolygon.
@@ -315,7 +425,7 @@ def extract_french_canton(polygon):
     }
 
 
-@iris.extractor('https://www.data.gouv.fr/s/resources/contour-des-iris-insee-tout-en-un/20150428-161348/iris-2013-01-01.zip')
+@iris.extractor('https://www.data.gouv.fr/s/resources/contour-des-iris-insee-tout-en-un/20150428-161348/iris-2013-01-01.zip')  # NOQA
 def extract_iris(polygon):
     '''
     Extract French IrisBased on data from:
@@ -339,7 +449,7 @@ def extract_iris(polygon):
     }
 
 
-@town.postprocessor('http://datanova.legroupe.laposte.fr/explore/dataset/laposte_hexasmal/download/?format=csv&timezone=Europe/Berlin&use_labels_for_header=true')
+@town.postprocessor('http://datanova.legroupe.laposte.fr/explore/dataset/laposte_hexasmal/download/?format=csv&timezone=Europe/Berlin&use_labels_for_header=true')  # NOQA
 def process_postal_codes(db, filename):
     '''
     Extract postal codes from:
@@ -358,7 +468,7 @@ def process_postal_codes(db, filename):
     success('Processed {0} french postal codes', processed)
 
 
-@epci.postprocessor('http://www.collectivites-locales.gouv.fr/files/files/epcicom2015.csv')
+@epci.postprocessor('http://www.collectivites-locales.gouv.fr/files/files/epcicom2015.csv')  # NOQA
 def attach_epci(db, filename):
     '''
     Attach EPCI towns to their EPCI from:
@@ -381,31 +491,8 @@ def attach_epci(db, filename):
                 processed += 1
     success('Attached {0} french town to their EPCI', processed)
 
-    # info('Attach EPCI to counties and regions')
-    # processed = 0
-    # pipeline = [
-    #     {'$match': {'level': town.id: 'parents': {'$regex': epci.id}}},
-    #     {'$unwind': '$parents'},
-    #     {'$match': {'parents': {'$regex': '^(' + county.id + '|' + region.id + ')'}}},
-    #     {'$group': {'_id': '$parents', 'population': {'$sum': '$population'}}}
-    # ]
-    # for result in db.aggregate(pipeline):
-    #     if db.find_one_and_update({'_id': result['_id']},
-    #         {'$set': {'population': result['population']}}):
-    #         processed += 1
-    # success('Computed population for {0} french districts', processed)
 
-    # processed = 0
-    # for siren, region in epci_region.items():
-    #     insee_region = region.replace('r', '')
-    #     region_id = 'fr/region/{0}'.format(insee_region)
-    #     if db.find_one_and_update({'level': epci.id, 'code': siren},
-    #         {'$addToSet': {'parents': region_id, 'parents': region_id}}):
-    #         processed += 1
-    # success('Attached {0} french EPCI to their region', processed)
-
-
-@town.postprocessor('https://www.insee.fr/fr/statistiques/fichier/2114819/france2016-txt.zip')
+@town.postprocessor('https://www.insee.fr/fr/statistiques/fichier/2114819/france2016-txt.zip')  # NOQA
 def process_insee_cog(db, filename):
     '''Use informations from INSEE COG to attach parents.
     http://www.insee.fr/fr/methodes/nomenclatures/cog/telechargement.asp
@@ -589,6 +676,9 @@ def attach_canton_parents(db, filename):
             continue
         county_id = candidates_ids[0]
         county_zone = db.find_one({'_id': county_id})
+        if not county_zone:
+            warning('No county found for: {0}', county_id)
+            continue
         ops = {
             '$addToSet': {'parents': {'$each': county_zone['parents']}},
             '$unset': {'_dep': 1}

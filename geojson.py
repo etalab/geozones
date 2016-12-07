@@ -7,6 +7,7 @@ from tools import unicodify
 def zone_to_feature(zone, keys):
     '''Serialize a zone into a GeoJSON feature'''
     properties = {
+        'permid': zone['permid'],
         'level': zone['level'],
         'code': zone['code'],
         'name': unicodify(zone['name']),
@@ -19,8 +20,8 @@ def zone_to_feature(zone, keys):
         'keys': zone.get('keys', {}),
         'validity': zone.get('validity', {}),
         'parents': zone.get('parents', []),
-        'ancestors': zone.get('ancestors', []),
-        'successors': zone.get('successors', []),
+        'ancestors': zone.get('ancestors', '') or None,
+        'successors': zone.get('successors', '') or None,
     }
     if keys is not None:
         for unwanted_key in set(properties.keys()) - set(keys):

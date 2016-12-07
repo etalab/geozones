@@ -200,13 +200,18 @@ class Level(object):
                 if zone.get('area'):
                     areas.append(zone['area'])
 
-        # Manual step by step accumulation given that bug:
-        # https://github.com/Toblerity/Shapely/issues/288
-        accumulated_geom = geoms[0]
-        for geom in geoms[1:]:
-            accumulated_geom = cascaded_union([accumulated_geom, geom])
-        if accumulated_geom.geom_type == 'Polygon':
-            accumulated_geom = MultiPolygon([accumulated_geom])
+        if geoms:
+            # Manual step by step accumulation given that bug:
+            # https://github.com/Toblerity/Shapely/issues/288
+            accumulated_geom = geoms[0]
+            for geom in geoms[1:]:
+                accumulated_geom = cascaded_union([accumulated_geom, geom])
+            if accumulated_geom.geom_type == 'Polygon':
+                accumulated_geom = MultiPolygon([accumulated_geom])
+            geom = accumulated_geom.__geo_interface__
+        else:
+            geom = None
+            warning('No geometry for {0}', zones)
 
         data = {
             '_id': '/'.join((self.id, code)),
@@ -215,7 +220,7 @@ class Level(object):
             'name': name,
             'population': sum(populations),
             'area': sum(areas),
-            'geom': accumulated_geom.__geo_interface__
+            'geom': geom
         }
         data.update(properties)
         return data
