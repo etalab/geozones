@@ -1,9 +1,11 @@
 import csv
 import io
-from collections import defaultdict
-from datetime import datetime
 from zipfile import ZipFile
 
+from francehisto import (
+    retrieve_zone, retrieve_current_counties, retrieve_current_county,
+    retrieve_current_region
+)
 from geo import Level, country, country_subset
 from tools import info, success, warning, unicodify
 from dbpedia import DBPedia
@@ -40,11 +42,6 @@ OVERSEAS = {
     'tf': ('984', 'Terres australes et antarctiques françaises'),
 }
 
-FR_METRO_COUNTIES = (
-    ['{0:0>2}'.format(i) for i in range(1, 20)]
-    + ['2a', '2b']
-    + ['{0:0>2}'.format(i) for i in range(21, 96)])
-
 FR_DOM_COUNTIES = ('971', '972', '973', '974', '976')
 
 FR_DOMTOM_COUNTIES = (
@@ -72,7 +69,7 @@ town.aggregate(
 
 country_subset.aggregate(
     'fr/metropole', _('Metropolitan France'),
-    ['fr/departement/{0}'.format(code) for code in FR_METRO_COUNTIES],
+    retrieve_current_counties,
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
 country_subset.aggregate(
@@ -87,7 +84,7 @@ country_subset.aggregate(
 
 
 @district.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
-def extract_french_district(polygon):
+def extract_french_district(db, polygon):
     '''
     Extract a french district informations from a MultiPolygon.
     Based on data from:
@@ -108,7 +105,7 @@ def extract_french_district(polygon):
 
 
 @epci.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/epci-20150303-100m-shp.zip')  # NOQA
-def extract_french_epci(polygon):
+def extract_french_epci(db, polygon):
     '''
     Extract a french EPCI informations from a MultiPolygon.
     Based on data from http://www.data.gouv.fr/datasets/contours-des-epci-2014/
@@ -130,58 +127,8 @@ def extract_french_epci(polygon):
     }
 
 
-def preprocess_counties(filename):
-    result = defaultdict(list)
-    with open(filename) as counties:
-        for county in csv.DictReader(counties):
-            result[county['insee_code']].append(county)
-    return result
-
-
-# TODO: grab directly from Github?
-_counties = preprocess_counties('../geohisto/exports/counties/counties.csv')
-
-
-@county.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20140306-100m-shp.zip')  # NOQA
-def extract_french_county(polygon):
-    '''
-    Extract a french county informations from a MultiPolygon.
-    Based on data from:
-    http://www.data.gouv.fr/datasets/contours-des-departements-francais-issus-d-openstreetmap/
-    '''
-    props = polygon['properties']
-    # Only focus on actual European counties for now.
-    county = [_county for _county in _counties[props['code_insee']]
-              if _county['end_datetime'].startswith('9999')]
-    if not county:
-        return
-    else:
-        county = county[0]
-    parents = ['fr/region/{code}'.format(code=parent[3:5])
-               for parent in county['parents'].split(';')]
-    code = county['insee_code'].lower()
-    return {
-        'permid': county['id'],
-        'code': code,
-        'name': unicodify(county['name']),
-        'wikipedia': unicodify(props['wikipedia']),
-        'parents': (['country/fr', 'country-group/ue', 'country-group/world']
-                    + parents),
-        'keys': {
-            'insee': code,
-            'nuts3': props['nuts3'],
-        },
-        'successors': county['successors'].split(';'),
-        'ancestors': county['ancestors'].split(';'),
-        'validity': {
-            'start': county['start_datetime'].split(' ')[0],
-            'end': county['end_datetime'].split(' ')[0]
-        }
-    }
-
-
 @county.extractor('http://thematicmapping.org/downloads/TM_WORLD_BORDERS-0.3.zip')  # NOQA
-def extract_overseas_county(polygon):
+def extract_overseas_county(db, polygon):
     '''
     Extract overseas county from their WorldBorder country.
     Based on data from http://thematicmapping.org/downloads/world_borders.php
@@ -207,180 +154,95 @@ def extract_overseas_county(polygon):
         }
 
 
-def preprocess_regions(filename):
-    result = {}
-    with open(filename) as regions:
-        for region in csv.DictReader(regions):
-            result[region['insee_code']] = region
-    return result
-
-
-# TODO: grab directly from Github?
-_regions = preprocess_regions('../geohisto/exports/regions/regions.csv')
-
-
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.01)  # NOQA
-def extract_new_french_region(polygon):
+@county.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20140306-100m-shp.zip')  # NOQA
+def extract_french_county(db, polygon):
     '''
-    Extract new french region informations from a MultiPolygon.
+    Extract a french county informations from a MultiPolygon.
     Based on data from:
-    https://www.data.gouv.fr/fr/datasets/projet-de-redecoupages-des-regions/
+    http://www.data.gouv.fr/datasets/contours-des-departements-francais-issus-d-openstreetmap/
     '''
     props = polygon['properties']
-    region = _regions[props['code_insee']]
-    return {
-        'permid': region['id'],
-        'code': region['insee_code'],
-        'name': unicodify(region['name']),
-        'area': region['surface'],
-        'population': region['population'],
-        'wikipedia': unicodify(region['wikipedia']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
-        'keys': {
-            'insee': region['insee_code'],
-            'nuts2': region['nuts_code']
-        },
-        'successors': region['successors'].split(';'),
-        'ancestors': region['ancestors'].split(';'),
-        'validity': {
-            'start': region['start_datetime'].split(' ')[0],
-            'end': region['end_datetime'].split(' ')[0]
-        }
-    }
+    zone = retrieve_zone(
+        db, county.id, props['code_insee'], '9999-12-31')
+    if not zone:
+        return
+    zone['keys']['nuts3'] = props['nuts3']
+    zone['wikipedia'] = unicodify(props['wikipedia'])
+    return zone
 
 
 @region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')  # NOQA
-def extract_old_french_region(polygon):
+def extract_2014_french_region(db, polygon):
     '''
     Extract a french region informations from a MultiPolygon.
     Based on data from:
     http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/
     '''
     props = polygon['properties']
-    code_insee = props['code_insee']
-    region = _regions[code_insee]
-    return {
-        'permid': region['id'],
-        'code': region['insee_code'],
-        'name': unicodify(region['name']),
-        'area': region['surface'],
-        'population': region['population'],
-        'wikipedia': unicodify(region['wikipedia']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
-        'keys': {
-            'insee': region['insee_code'],
-            'nuts2': region['nuts_code']
-        },
-        'successors': region['successors'].split(';'),
-        'ancestors': region['ancestors'].split(';'),
-        'validity': {
-            'start': region['start_datetime'].split(' ')[0],
-            'end': region['end_datetime'].split(' ')[0]
-        }
-    }
+    return retrieve_zone(db, region.id, props['code_insee'], '2015-12-31')
 
 
-def preprocess_towns(filename):
-    result = defaultdict(list)
-    with open(filename) as towns:
-        for town in csv.DictReader(towns):
-            result[town['insee_code']].append(town)
-    return result
-
-
-# TODO: grab directly from Github?
-_towns = preprocess_towns('../geohisto/exports/towns/towns.csv')
-_now_str = datetime.now().isoformat(sep=str(' '))
-_old_str = datetime(2015, 1, 2).isoformat(sep=str(' '))
-_2016 = datetime(2016, 1, 1).isoformat(sep=str(' '))
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.01)  # NOQA
+def extract_2016_french_region(db, polygon):
+    '''
+    Extract new french region informations from a MultiPolygon.
+    Based on data from:
+    https://www.data.gouv.fr/fr/datasets/projet-de-redecoupages-des-regions/
+    '''
+    props = polygon['properties']
+    return retrieve_zone(db, region.id, props['code_insee'], '9999-12-31')
 
 
 @town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip', simplify=0.0005)  # NOQA
-def extract_new_french_town(polygon):
+def extract_2016_french_town(db, polygon):
     '''
     Extract a french town informations from a MultiPolygon.
     Based on data from:
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    code = props['insee']
-    geohistowns = [t for t in _towns[code]
-                   if t['start_datetime'] <= _now_str <= t['end_datetime']]
-    if not geohistowns:
-        print('Not found now:', props, _towns[code])
-        return {}
+    zone = retrieve_zone(db, town.id, props['insee'], '9999-12-31')
+    if not zone:
+        return
+    zone['area'] = int(props['surf_ha'])
+    zone['wikipedia'] = unicodify(props['wikipedia'])
+    return zone
 
-    town = geohistowns[0]
-    population = town['population']
-    if population == 'NULL':
-        population = 0
-    parents = ['fr/departement/{code}'.format(code=parent[3:5].lower())
-               for parent in town['parents'].split(';')]
-    return {
-        'permid': town['id'],
-        'code': code.lower(),
-        'name': unicodify(props['nom']),
-        'wikipedia': unicodify(props['wikipedia']),
-        'area': int(props['surf_ha']),
-        'population': population,
-        'parents': (['country/fr', 'country-group/ue', 'country-group/world']
-                    + parents),
-        'keys': {
-            'insee': code,
-        },
-        'successors': town['successors'].split(';'),
-        'ancestors': town['ancestors'].split(';'),
-        'validity': {
-            'start': town['start_datetime'].split(' ')[0],
-            'end': town['end_datetime'].split(' ')[0]
-        }
-    }
+
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20131220-100m-shp.zip')  # NOQA
+def extract_2014_french_town(db, polygon):
+    '''
+    Extract a french town informations from a MultiPolygon.
+    Based on data from:
+    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    '''
+    props = polygon['properties']
+    zone = retrieve_zone(db, town.id, props['insee'], '2014-12-31')
+    if not zone:
+        return
+    zone['area'] = int(props['surf_m2']) / 10**6
+    zone['wikipedia'] = unicodify(props['wikipedia'])
+    return zone
 
 
 @town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20150101-100m-shp.zip')  # NOQA
-def extract_old_french_town(polygon):
+def extract_2015_french_town(db, polygon):
     '''
     Extract a french town informations from a MultiPolygon.
     Based on data from:
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    code = props['insee']
-    geohistowns = [t for t in _towns[code]
-                   if (t['start_datetime'] <= _old_str <= t['end_datetime']
-                       and t['end_datetime'] < _2016)]
-    if not geohistowns:
-        return {}
-
-    town = geohistowns[0]
-    population = town['population']
-    if population == 'NULL':
-        population = 0
-    parents = ['fr/departement/{code}'.format(code=parent[3:5].lower())
-               for parent in town['parents'].split(';')]
-    return {
-        'permid': town['id'],
-        'code': code.lower(),
-        'name': unicodify(props['nom']),
-        'wikipedia': unicodify(props['wikipedia']),
-        'area': int(props['surf_m2']) / 10**6,
-        'population': population,
-        'parents': (['country/fr', 'country-group/ue', 'country-group/world']
-                    + parents),
-        'keys': {
-            'insee': code,
-        },
-        'successors': town['successors'].split(';'),
-        'ancestors': town['ancestors'].split(';'),
-        'validity': {
-            'start': town['start_datetime'].split(' ')[0],
-            'end': town['end_datetime'].split(' ')[0]
-        }
-    }
+    zone = retrieve_zone(db, town.id, props['insee'], '2015-12-31')
+    if not zone:
+        return
+    zone['area'] = int(props['surf_m2']) / 10**6
+    zone['wikipedia'] = unicodify(props['wikipedia'])
+    return zone
 
 
 @town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-municipaux-20160128-shp.zip')  # NOQA
-def extract_french_arrondissements(polygon):
+def extract_french_arrondissements(db, polygon):
     '''
     Extract a french arrondissements informations from a MultiPolygon.
     Based on data from:
@@ -401,7 +263,7 @@ def extract_french_arrondissements(polygon):
 
 
 @canton.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/cantons-2015-shp.zip', simplify=0.005)  # NOQA
-def extract_french_canton(polygon):
+def extract_french_canton(db, polygon):
     '''
     Extract a french canton informations from a MultiPolygon.
     Based on data from:
@@ -409,15 +271,16 @@ def extract_french_canton(polygon):
     '''
     props = polygon['properties']
     code = props['ref'].lower()
-    county_code = props['dep'].lower()
-    county_id = 'fr/departement/{0}'.format(county_code)
+    parents = ['country/fr', 'country-group/ue', 'country-group/world']
+    county = retrieve_current_county(db, props['dep'])
+    if county:
+        parents.append(county['_id'])
     return {
         'code': code,
         'name': unicodify(props['nom']),
         'population': props['population'],
         'wikipedia': unicodify(props['wikipedia']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world',
-                    county_id],
+        'parents': parents,
         'keys': {
             'ref': code,
             'jorf': props['jorf']
@@ -426,21 +289,22 @@ def extract_french_canton(polygon):
 
 
 @iris.extractor('https://www.data.gouv.fr/s/resources/contour-des-iris-insee-tout-en-un/20150428-161348/iris-2013-01-01.zip')  # NOQA
-def extract_iris(polygon):
+def extract_iris(db, polygon):
     '''
     Extract French IrisBased on data from:
     http://professionnels.ign.fr/contoursiris
     '''
     props = polygon['properties']
     code = props['DCOMIRIS']
-    town_code = props['DEPCOM'].lower()
-    town_id = 'fr/commune/{0}'.format(town_code)
+    parents = ['country/fr', 'country-group/ue', 'country-group/world']
+    town = retrieve_zone(db, 'fr/commune', props['DEPCOM'], after='2013-01-01')
+    if town:
+        parents.append(town['_id'])
     name = unicodify(props['NOM_IRIS']).title()
     return {
         'code': code,
         'name': name,
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world',
-                    town_id],
+        'parents': parents,
         '_type': props['TYP_IRIS'],
         'keys': {
             'iris': code
@@ -499,42 +363,24 @@ def process_insee_cog(db, filename):
     '''
     info('Processing INSEE COG')
     processed = 0
-    counties = {}
     districts = {}
     with ZipFile(filename) as cogzip:
         with cogzip.open('france2016.txt') as tsvfile:
             tsvio = io.TextIOWrapper(tsvfile, encoding='cp1252')
             reader = csv.DictReader(tsvio, delimiter='\t')
             for row in reader:
-                # Lower everything, from 2B to 2b for instance.
-                region_code = row['REG'].lower()
-                county_code = row['DEP'].lower()
-                district_code = row['AR'].lower()
-                town_code = row['COM'].lower()
-                insee_code = ''.join((county_code, town_code))
-
-                region_id = 'fr/region/{0}'.format(region_code)
-                county_id = 'fr/departement/{0}'.format(county_code)
-
-                parents = [region_id, county_id]
-
-                if county_id not in counties:
-                    counties[county_id] = region_id
+                region_code = row['REG']
+                county_code = row['DEP']
+                district_code = row['AR']
+                region = retrieve_current_region(db, region_code)
+                county = retrieve_current_county(db, county_code)
 
                 if district_code:
                     district_code = ''.join((county_code, district_code))
                     district_id = 'fr/district/{0}'.format(district_code)
-                    parents.append(district_id)
-                    if district_id not in districts:
-                        districts[district_id] = [region_id, county_id]
+                    if district_id not in districts and region and county:
+                        districts[district_id] = [region['_id'], county['_id']]
 
-                if db.find_one_and_update(
-                        {'level': town.id, 'code': insee_code},
-                        {'$addToSet': {'parents': {'$each': parents}}}):
-                    processed += 1
-    success('Attached {0} french towns to their parents', processed)
-
-    processed = 0
     for district_id, parents in districts.items():
         if db.find_one_and_update(
                 {'_id': district_id},
@@ -544,19 +390,11 @@ def process_insee_cog(db, filename):
             processed += 1
     success('Attached {0} french districts to their parents', processed)
 
-    processed = 0
-    for county_id, parent in counties.items():
-        if db.find_one_and_update(
-                {'_id': county_id},
-                {'$addToSet': {'parents': parent}}):
-            processed += 1
-    success('Attached {0} french counties to their parents', processed)
-
 
 @town.postprocessor()
 def town_with_districts(db, filename):
     info('Attaching Paris town districts')
-    paris = db.find_one({'_id': 'fr/commune/75056'})
+    paris = db.find_one({'_id': 'COM75056@1942-01-01'})
     parents = paris['parents']
     parents.append(paris['_id'])
     result = db.update_many(
@@ -565,7 +403,7 @@ def town_with_districts(db, filename):
     success('Attached {0} districts to Paris', result.modified_count)
 
     info('Attaching Marseille town districts')
-    marseille = db.find_one({'_id': 'fr/commune/13055'})
+    marseille = db.find_one({'_id': 'COM13055@1942-01-01'})
     parents = marseille['parents']
     parents.append(marseille['_id'])
     result = db.update_many(
@@ -574,7 +412,7 @@ def town_with_districts(db, filename):
     success('Attached {0} districts to Marseille', result.modified_count)
 
     info('Attaching Lyon town districts')
-    lyon = db.find_one({'_id': 'fr/commune/69123'})
+    lyon = db.find_one({'_id': 'COM69123@1942-01-01'})
     parents = lyon['parents']
     parents.append(lyon['_id'])
     result = db.update_many(
@@ -615,7 +453,7 @@ def compute_town_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': PARIS_DISTRICTS}})
     population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
-        {'_id': 'fr/commune/75056'},
+        {'_id': 'COM75056@1942-01-01'},
         {'$set': {'population': population}})
     success('Computed population for Paris')
 
@@ -623,7 +461,7 @@ def compute_town_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': MARSEILLE_DISTRICTS}})
     population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
-        {'_id': 'fr/commune/13055'},
+        {'_id': 'COM13055@1942-01-01'},
         {'$set': {'population': population}})
     success('Computed population for Marseille')
 
@@ -631,7 +469,7 @@ def compute_town_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': LYON_DISTRICTS}})
     population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
-        {'_id': 'fr/commune/69123'},
+        {'_id': 'COM69123@1942-01-01'},
         {'$set': {'population': population}})
     success('Computed population for Lyon')
 
@@ -640,7 +478,7 @@ def compute_town_with_districts_population(db, filename):
 @town.postprocessor()
 def attach_counties_to_subcountries(db, filename):
     info('Attaching French Metropolitan counties')
-    ids = ['fr/departement/{0}' .format(c) for c in FR_METRO_COUNTIES]
+    ids = [county['_id'] for county in retrieve_current_counties(db)]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/metro'}}
@@ -670,7 +508,7 @@ def attach_canton_parents(db, filename):
     canton_processed = 0
     for zone in db.find({'level': canton.id}):
         candidates_ids = [p for p in zone['parents']
-                          if p.startswith(county.id)]
+                          if p.startswith('DEP')]
         if len(candidates_ids) < 1:
             warning('No parent candidate found for: {0}', zone['_id'])
             continue
@@ -694,7 +532,7 @@ def attach_and_clean_iris(db, filename):
     info('Attaching French IRIS to their region')
     processed = 0
     for zone in db.find({'level': iris.id}):
-        candidates_ids = [p for p in zone['parents'] if p.startswith(town.id)]
+        candidates_ids = [p for p in zone['parents'] if p.startswith('COM')]
         if len(candidates_ids) < 1:
             warning('No parent candidate found for: {0}', zone['_id'])
             continue
@@ -743,7 +581,7 @@ def compute_county_area_and_population(db, filename):
     pipeline = [
         {'$match': {'level': town.id}},
         {'$unwind': '$parents'},
-        {'$match': {'parents': {'$regex': county.id}}},
+        {'$match': {'parents': {'$regex': 'DEP'}}},
         {'$group': {
             '_id': '$parents',
             'area': {'$sum': '$area'},
@@ -766,9 +604,9 @@ def compute_region_population(db, filename):
     info('Computing french regions population by aggregation')
     processed = 0
     pipeline = [
-        {'$match': {'level': town.id}},
+        {'$match': {'level': county.id}},
         {'$unwind': '$parents'},
-        {'$match': {'parents': {'$regex': region.id}}},
+        {'$match': {'parents': {'$regex': 'REG'}}},
         {'$group': {'_id': '$parents', 'population': {'$sum': '$population'}}}
     ]
     for result in db.aggregate(pipeline):

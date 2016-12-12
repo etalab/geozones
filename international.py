@@ -5,7 +5,7 @@ _ = lambda s: s
 
 
 @country.extractor('http://naciscdn.org/naturalearth/110m/cultural/ne_110m_admin_0_countries_lakes.zip')
-def extract_country2(polygon):
+def extract_country2(db, polygon):
     '''
     Extract a country information from single MultiPolygon.
     Based on data from:

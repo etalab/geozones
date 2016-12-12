@@ -15,6 +15,9 @@ from tools import (
     extract_meta_from_headers
 )
 from geo import root
+from francehisto import (
+    load_towns, load_counties, load_regions, URLS as GEOHISTO_URLS
+)
 
 # Importing levels modules in order (international first)
 import international  # noqa
@@ -67,10 +70,14 @@ def download(ctx):
 
     urls = (level.urls for level in ctx.obj['levels'] if level.urls)
     urls = set([url for lst in urls for url in lst])
-    for url in urls:
+    for url in list(urls) + GEOHISTO_URLS:
         info('Dealing with {0}'.format(url))
         filename, size = extract_meta_from_headers(url)
-        info('Downloading {0}'.format(filename))
+        target = join(DL_DIR, filename)
+        if exists(target):
+            info('Skipping {0} because it already exists.'.format(filename))
+            continue
+        info('Downloading {0} into {1}'.format(filename, DL_DIR))
         with click.progressbar(length=size) as bar:
             def reporthook(blocknum, blocksize, totalsize):
                 read = blocknum * blocksize
@@ -81,21 +88,15 @@ def download(ctx):
                 else:
                     bar.update(read)
 
-            urlretrieve(url, join(DL_DIR, filename), reporthook=reporthook)
+            urlretrieve(url, target, reporthook=reporthook)
 
 
 @cli.command()
-@click.pass_context
 @click.option('-d', '--drop', is_flag=True)
-@click.option('-o', '--only', default=None)
-@click.option('-e', '--exclude', default=None)
-def load(ctx, drop, only, exclude):
-    '''Load zones from a folder of zip files containing shapefiles'''
-    title('Extracting zones from datasets, takes about 15 minutes')
-    title(('Excluding `extract_iris` with the `-e` option will reduce '
-           'the duration to 5 minutes.'))
+def preload(drop):
+    '''Preload all historical zones from geohisto.'''
+    title('Preload all historical zones from geohisto, takes a few seconds.')
     zones = DB()
-
     if drop:
         info('Drop existing collection')
         zones.drop()
@@ -107,6 +108,27 @@ def load(ctx, drop, only, exclude):
     info('Creating index (parents)')
     zones.create_index('parents')
 
+    info('Load regions')
+    total = load_regions(zones, DL_DIR)
+    success('Done: Loaded {0} regions'.format(total))
+    info('Load counties')
+    total = load_counties(zones, DL_DIR)
+    success('Done: Loaded {0} counties'.format(total))
+    info('Load towns')
+    total = load_towns(zones, DL_DIR)
+    success('Done: Loaded {0} towns'.format(total))
+
+
+@cli.command()
+@click.pass_context
+@click.option('-o', '--only', default=None)
+@click.option('-e', '--exclude', default=None)
+def load(ctx, only, exclude):
+    '''Load zones from a folder of zip files containing shapefiles'''
+    title('Extracting zones from datasets, takes about 25 minutes')
+    title(('Excluding `extract_iris` with the `-e` option will reduce '
+           'the duration to 10 minutes.'))
+    zones = DB()
     total = 0
 
     for level in ctx.obj['levels']:
@@ -259,7 +281,8 @@ def full(ctx, drop, pretty, split, compress, serialization, keys):
     '''
     title('Performing full processing, takes about 3 hours')
     ctx.invoke(download)
-    ctx.invoke(load, drop=drop)
+    ctx.invoke(preload, drop=drop)
+    ctx.invoke(load)
     ctx.invoke(aggregate)
     ctx.invoke(postprocess)
     ctx.invoke(dist, pretty=pretty, split=split, compress=compress,

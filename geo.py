@@ -126,11 +126,12 @@ class Level(object):
 
             for polygon in collection:
                 try:
-                    zone = extractor(polygon)
+                    zone = extractor(db, polygon)
                     if not zone:
                         continue
                     zone['keys'] = dict(
-                        (k, v) for k, v in zone.get('keys', {}).items()
+                        (k, v)
+                        for k, v in zone.get('keys', {}).items()
                         if v is not None)
                     geom = shape(polygon['geometry'])
                     if extractor.simplify:
@@ -141,10 +142,13 @@ class Level(object):
                         warning('Unsupported geometry type "{0}" for "{1}"',
                                 geom.geom_type, zone['name'])
                         continue
-                    zoneid = '/'.join((self.id, zone['code']))
-                    zone.update(
-                        _id=zoneid, level=self.id, geom=geom.__geo_interface__)
-                    db.find_one_and_replace({'_id': zoneid}, zone, upsert=True)
+                    zone.update(geom=geom.__geo_interface__)
+                    zone_id = zone.get('_id')
+                    if not zone_id:
+                        zone_id = '/'.join((self.id, zone['code']))
+                        zone.update(_id=zone_id, level=self.id)
+                    db.find_one_and_replace(
+                        {'_id': zone_id}, zone, upsert=True)
                     loaded += 1
                 except Exception:
                     error(traceback.format_exc())
@@ -169,6 +173,8 @@ class Level(object):
         geoms = []
         populations = []
         areas = []
+        if callable(zones):
+            zones = [zone['_id'] for zone in zones(db)]
         for zoneid in zones:
             # Resolve wildcard
             if zoneid.endswith('/*'):
