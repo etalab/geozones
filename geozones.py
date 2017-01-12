@@ -2,6 +2,7 @@
 import json
 import os
 import tarfile
+import textwrap
 from os.path import basename, join, exists
 from urllib.request import FancyURLopener
 
@@ -62,9 +63,12 @@ def cli(ctx, level, home):
 @cli.command()
 @click.pass_context
 def download(ctx):
-    '''Download sources datasets'''
-    title(('Downloading required datasets (~700Mb), '
-           'takes about 15 minutes depending on your connexion bandwidth.'))
+    '''
+    Download required datasets (~700Mb).
+
+    Take about 15 minutes depending on your connexion bandwidth.
+    '''
+    title(textwrap.dedent(download.__doc__))
     if not exists(DL_DIR):
         os.makedirs(DL_DIR)
 
@@ -94,8 +98,12 @@ def download(ctx):
 @cli.command()
 @click.option('-d', '--drop', is_flag=True)
 def preload(drop):
-    '''Preload all historical zones from geohisto.'''
-    title('Preload all historical zones from geohisto, takes a few seconds.')
+    '''
+    Preload all historical zones from geohisto.
+
+    Take a few seconds.
+    '''
+    title(textwrap.dedent(preload.__doc__))
     zones = DB()
     if drop:
         info('Drop existing collection')
@@ -124,10 +132,15 @@ def preload(drop):
 @click.option('-o', '--only', default=None)
 @click.option('-e', '--exclude', default=None)
 def load(ctx, only, exclude):
-    '''Load zones from a folder of zip files containing shapefiles'''
-    title('Extracting zones from datasets, takes about 25 minutes')
-    title(('Excluding `extract_iris` with the `-e` option will reduce '
-           'the duration to 10 minutes.'))
+    '''
+    Load zones from a folder of zip files containing shapefiles
+
+    Take about 25 minutes.
+
+    Excluding `extract_iris` with the `-e` option will reduce
+    the duration to 10 minutes.
+    '''
+    title(textwrap.dedent(load.__doc__))
     zones = DB()
     total = 0
 
@@ -141,8 +154,10 @@ def load(ctx, only, exclude):
 @cli.command()
 @click.pass_context
 def aggregate(ctx):
-    '''Perform zones aggregations'''
-    title('Performing zones aggregations')
+    '''
+    Perform zones aggregations.
+    '''
+    title(textwrap.dedent(aggregate.__doc__))
     zones = DB()
 
     total = 0
@@ -158,13 +173,19 @@ def aggregate(ctx):
 @click.option('-o', '--only', default=None)
 @click.option('-e', '--exclude', default=None)
 def postprocess(ctx, only, exclude):
-    '''Perform some postprocessing'''
-    title('Performing post-processing, takes about 2 hours and a half')
-    title(('Take care of the order, especially `process_insee_cog` and '
-           '`compute_region_population` might need to be run again with '
-           'the `-o` option.'))
-    title(('Excluding `fetch_missing_data_from_dbpedia` with the `-e` '
-           'option will reduce the duration to 2 minutes.'))
+    '''
+    Perform post-processing.
+
+    Take about 2 hours and a half.
+
+    Take care of the order, especially `process_insee_cog` and
+    `compute_region_population` might need to be run again with
+    the `-o` option.
+
+    Excluding `fetch_missing_data_from_dbpedia` with the `-e`
+    option will reduce the duration to 2 minutes.
+    '''
+    title(textwrap.dedent(postprocess.__doc__))
     zones = DB()
 
     for level in ctx.obj['levels']:
@@ -275,11 +296,11 @@ def dist(ctx, pretty, split, compress, serialization, keys):
 @click.option('-k', '--keys', default=None)
 def full(ctx, drop, pretty, split, compress, serialization, keys):
     '''
-    Perfom a full processing
+    Perfom full processing, execute all operations from download to dist.
 
-    Execute all operations from download to dist
+    Take about 3 hours.
     '''
-    title('Performing full processing, takes about 3 hours')
+    title(textwrap.dedent(full.__doc__))
     ctx.invoke(download)
     ctx.invoke(preload, drop=drop)
     ctx.invoke(load)

@@ -151,9 +151,9 @@ class Level(object):
                         {'_id': zone_id}, zone, upsert=True)
                     loaded += 1
                 except Exception:
-                    error(traceback.format_exc())
                     error('Error extracting polygon {0}',
                           polygon['properties'])
+                    error(traceback.format_exc())
 
         info('Loaded {0} zones for level {1} from file {2}',
              loaded, self.id, filename)

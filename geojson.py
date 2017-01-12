@@ -18,7 +18,7 @@ def zone_to_feature(zone, keys):
         'blazon': unicodify(zone.get('blazon', '')) or None,
         'keys': zone.get('keys', {}),
         'validity': zone.get('validity', {}),
-        'parents': zone.get('parents', []),
+        'parents': zone.get('parents', '') or None,
         'ancestors': zone.get('ancestors', '') or None,
         'successors': zone.get('successors', '') or None,
     }
