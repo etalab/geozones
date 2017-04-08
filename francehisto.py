@@ -25,10 +25,10 @@ def load_towns(zones, root):
         'level': 'fr/commune',
         'name': line['name'],
         'population': (0
-            if line['population'] == 'NULL'
-            else line['population']),
-        'parents': (['country/fr', 'country-group/ue', 'country-group/world']
-                    + line['parents'].split(';')),
+                       if line['population'] == 'NULL'
+                       else line['population']),
+        'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
+                    line['parents'].split(';')),
         'keys': {
             'insee': line['insee_code'],
         },
@@ -51,8 +51,8 @@ def load_counties(zones, root):
         'code': line['insee_code'],
         'level': 'fr/departement',
         'name': line['name'],
-        'parents': (['country/fr', 'country-group/ue', 'country-group/world']
-                    + line['parents'].split(';')),
+        'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
+                    line['parents'].split(';')),
         'keys': {
             'insee': line['insee_code'],
         },

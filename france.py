@@ -132,7 +132,6 @@ def extract_overseas_county(db, polygon):
     '''
     Extract overseas county from their WorldBorder country.
     Based on data from http://thematicmapping.org/downloads/world_borders.php
-
     '''
     props = polygon['properties']
     iso = props['ISO2'].lower()
@@ -205,7 +204,8 @@ def extract_2016_french_town(db, polygon):
     if not zone:
         return
     zone['area'] = int(props['surf_ha'])
-    zone['wikipedia'] = unicodify(props['wikipedia'])
+    zone['wikipedia'] = (props['wikipedia'] and
+                         props['wikipedia'].encode('latin-1').decode('utf-8'))
     return zone
 
 
@@ -221,7 +221,8 @@ def extract_2014_french_town(db, polygon):
     if not zone:
         return
     zone['area'] = int(props['surf_m2']) / 10**6
-    zone['wikipedia'] = unicodify(props['wikipedia'])
+    zone['wikipedia'] = (props['wikipedia'] and
+                         props['wikipedia'].encode('latin-1').decode('utf-8'))
     return zone
 
 
@@ -237,7 +238,8 @@ def extract_2015_french_town(db, polygon):
     if not zone:
         return
     zone['area'] = int(props['surf_m2']) / 10**6
-    zone['wikipedia'] = unicodify(props['wikipedia'])
+    zone['wikipedia'] = (props['wikipedia'] and
+                         props['wikipedia'].encode('latin-1').decode('utf-8'))
     return zone
 
 
@@ -425,16 +427,20 @@ def town_with_districts(db, filename):
 def fetch_missing_data_from_dbpedia(db, filename):
     info('Fetching DBPedia data')
     processed = 0
-    for zone in db.find({
-            'wikipedia': {'$exists': True, '$ne': None},
-            '$or': [
-                {'population': None},
-                {'population': {'$exists': False}},
-                {'area': None},
-                {'area': {'$exists': False}},
-            ]
-            }, no_cursor_timeout=True):
-
+    query = {
+        'wikipedia': {'$exists': True, '$ne': None},
+        '$or': [
+            {'population': None},
+            {'population': {'$exists': False}},
+            {'area': None},
+            {'area': {'$exists': False}},
+            {'flag': None},
+            {'flag': {'$exists': False}},
+            {'blazon': None},
+            {'blazon': {'$exists': False}},
+        ]
+    }
+    for zone in db.find(query, no_cursor_timeout=True):
         dbpedia = DBPedia(zone['wikipedia'])
         metadata = {
             'dbpedia': dbpedia.resource_url,

@@ -119,7 +119,7 @@ class Level(object):
 
         with fiona.open('/{0}'.format(shp),
                         vfs='zip://{0}'.format(filename),
-                        encoding='utf8') as collection:
+                        encoding='latin-1') as collection:
             info('Extracting {0} elements from {1} ({2} {3})',
                  len(collection), basename(filename), collection.driver,
                  to_string(collection.crs))
