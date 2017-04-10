@@ -176,7 +176,7 @@ def postprocess(ctx, only, exclude):
     '''
     Perform post-processing.
 
-    Take about 2 hours and a half.
+    Take from 2 hours and a half and 6 hours.
 
     Take care of the order, especially `process_insee_cog` and
     `compute_region_population` might need to be run again with
