@@ -26,7 +26,7 @@ def load_towns(zones, root):
         'name': line['name'],
         'population': (0
                        if line['population'] == 'NULL'
-                       else line['population']),
+                       else int(line['population'])),
         'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
                     line['parents'].split(';')),
         'keys': {
@@ -75,8 +75,8 @@ def load_regions(zones, root):
         'code': line['insee_code'],
         'level': 'fr/region',
         'name': line['name'],
-        'area': line['surface'],
-        'population': line['population'],
+        'area': int(line['surface']),
+        'population': int(line['population']),
         'wikipedia': line['wikipedia'],
         'parents': [
             'country/fr', 'country-group/ue', 'country-group/world'

@@ -25,11 +25,12 @@ canton = Level('fr/canton', _('French canton'), county)
 iris = Level('fr/iris', _('Iris (Insee districts)'), town)
 
 # Cities with districts
-PARIS_DISTRICTS = ['fr/commune/751{0:0>2}'.format(i) for i in range(1, 21)]
+PARIS_DISTRICTS = ['COM751{0:0>2}@1942-01-01'.format(i) for i in range(1, 21)]
 
-MARSEILLE_DISTRICTS = ['fr/commune/132{0:0>2}'.format(i) for i in range(1, 17)]
+MARSEILLE_DISTRICTS = [
+    'COM132{0:0>2}@1942-01-01'.format(i) for i in range(1, 17)]
 
-LYON_DISTRICTS = ['fr/commune/6938{0}'.format(i) for i in range(1, 9)]
+LYON_DISTRICTS = ['COM6938{0}@1942-01-01'.format(i) for i in range(1, 9)]
 
 # Overseas territories as counties
 OVERSEAS = {
@@ -48,24 +49,6 @@ FR_DOMTOM_COUNTIES = (
     '971', '972', '973', '974', '975', '976', '977', '978', '984', '986',
     '987', '988'
 )
-
-town.aggregate(
-    '75056', 'Paris', PARIS_DISTRICTS,
-    parents=['country/fr', 'country-group/ue', 'country-group/world',
-             'fr/departement/75'],
-    keys={'insee': '75056'})
-
-town.aggregate(
-    '13055', 'Marseille', MARSEILLE_DISTRICTS,
-    parents=['country/fr', 'country-group/ue', 'country-group/world',
-             'fr/departement/13'],
-    keys={'insee': '13055'})
-
-town.aggregate(
-    '69123', 'Lyon', LYON_DISTRICTS,
-    parents=['country/fr', 'country-group/ue', 'country-group/world',
-             'fr/departement/69'],
-    keys={'insee': '69123'})
 
 country_subset.aggregate(
     'fr/metropole', _('Metropolitan France'),
@@ -251,17 +234,10 @@ def extract_french_arrondissements(db, polygon):
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    code = props['insee'].lower()
-    return {
-        'code': code,
-        'name': unicodify(props['nom']),
-        'wikipedia': unicodify(props['wikipedia']),
-        'area': int(props['surf_ha']),
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
-        'keys': {
-            'insee': code,
-        }
-    }
+    zone = retrieve_zone(db, town.id, props['insee'], '9999-12-31')
+    zone['wikipedia'] = unicodify(props['wikipedia'])
+    zone['area'] = int(props['surf_ha'])
+    return zone
 
 
 @canton.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/cantons-2015-shp.zip', simplify=0.005)  # NOQA
