@@ -50,21 +50,6 @@ FR_DOMTOM_COUNTIES = (
     '987', '988'
 )
 
-country_subset.aggregate(
-    'fr/metropole', _('Metropolitan France'),
-    retrieve_current_counties,
-    parents=['country/fr', 'country-group/ue', 'country-group/world'])
-
-country_subset.aggregate(
-    'fr/dom', 'DOM',
-    ['fr/departement/{0}'.format(code) for code in FR_DOM_COUNTIES],
-    parents=['country/fr', 'country-group/ue', 'country-group/world'])
-
-country_subset.aggregate(
-    'fr/domtom', _('Overseas France'),
-    ['fr/departement/{0}'.format(code) for code in FR_DOMTOM_COUNTIES],
-    parents=['country/fr', 'country-group/ue', 'country-group/world'])
-
 
 @district.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
 def extract_french_district(db, polygon):
@@ -136,7 +121,7 @@ def extract_overseas_county(db, polygon):
         }
 
 
-@county.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20140306-100m-shp.zip')  # NOQA
+@county.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20170102-shp.zip', simplify=0.005)  # NOQA
 def extract_french_county(db, polygon):
     '''
     Extract a french county informations from a MultiPolygon.
@@ -144,12 +129,15 @@ def extract_french_county(db, polygon):
     http://www.data.gouv.fr/datasets/contours-des-departements-francais-issus-d-openstreetmap/
     '''
     props = polygon['properties']
-    zone = retrieve_zone(
-        db, county.id, props['code_insee'], '9999-12-31')
+    code_insee = props['code_insee']
+    if code_insee == '69D':  # Not handled at the geohisto level (yet?).
+        code_insee = '69'
+    zone = retrieve_zone(db, county.id, code_insee, '9999-12-31')
     if not zone:
         return
     zone['keys']['nuts3'] = props['nuts3']
-    zone['wikipedia'] = unicodify(props['wikipedia'])
+    zone['wikipedia'] = unicodify(props['wikipedia']
+                                  .encode('latin-1').decode('utf-8'))
     return zone
 
 
@@ -175,6 +163,23 @@ def extract_2016_french_region(db, polygon):
     return retrieve_zone(db, region.id, props['code_insee'], '9999-12-31')
 
 
+@town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20170111-shp.zip', simplify=0.0005)  # NOQA
+def extract_2017_french_town(db, polygon):
+    '''
+    Extract a french town informations from a MultiPolygon.
+    Based on data from:
+    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    '''
+    props = polygon['properties']
+    zone = retrieve_zone(db, town.id, props['insee'], '9999-12-31')
+    if not zone:
+        return
+    zone['area'] = int(props['surf_ha'])
+    zone['wikipedia'] = (props['wikipedia'] and
+                         props['wikipedia'].encode('latin-1').decode('utf-8'))
+    return zone
+
+
 @town.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip', simplify=0.0005)  # NOQA
 def extract_2016_french_town(db, polygon):
     '''
@@ -183,7 +188,7 @@ def extract_2016_french_town(db, polygon):
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    zone = retrieve_zone(db, town.id, props['insee'], '9999-12-31')
+    zone = retrieve_zone(db, town.id, props['insee'], '2016-12-31')
     if not zone:
         return
     zone['area'] = int(props['surf_ha'])
