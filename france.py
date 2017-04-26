@@ -6,7 +6,7 @@ from francehisto import (
     retrieve_zone, retrieve_current_counties, retrieve_current_county,
     retrieve_current_region
 )
-from geo import Level, country, country_subset
+from geo import Level, country
 from tools import info, success, warning, unicodify
 from dbpedia import DBPedia
 
@@ -308,7 +308,7 @@ def process_postal_codes(db, filename):
         reader = csv.reader(csvfile, delimiter=';')
         # skip header
         next(reader, None)
-        for insee, _, postal, _, _ in reader:
+        for insee, _1, postal, _2, _3, _4 in reader:
             ops = {'$addToSet': {'keys.postal': postal}}
             if db.find_one_and_update({'level': town.id, 'code': insee}, ops):
                 processed += 1
