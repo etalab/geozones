@@ -98,9 +98,10 @@ def load_regions(zones, root):
 
 def retrieve_zones(db, level, code=None, before=None, after=None):
     """
-    Retrieve the latest zone for a given level and code before/after a date.
+    Retrieve zones for a given level and code before/after a date
+    including that date.
 
-    The `before` and `after` dates must be a strings like `YYYY-MM-DD`.
+    The `before` and `after` dates must be strings like `YYYY-MM-DD`.
     They are mutually exclusive.
     """
     if before:
@@ -115,19 +116,19 @@ def retrieve_zones(db, level, code=None, before=None, after=None):
     }
     if code:
         conditions['code'] = code
-    return db.find(conditions).sort('validity.start')
+    return db.find(conditions).sort('-validity.start')
 
 
 def retrieve_zone(db, level, code=None, before=None, after=None):
     """
-    Retrieve the latest zone for a given level and code before/after a date.
+    Retrieve the latest zone for a given level and code before/after a date
+    including that date.
 
     The `before` and `after` dates must be a strings like `YYYY-MM-DD`.
     They are mutually exclusive.
     """
-    zones = retrieve_zones(db, level, code, before, after)
-    zones = list(zones)
-    return zones[-1] if zones else None
+    zone = list(retrieve_zones(db, level, code, before, after).limit(1))
+    return zone and zone[0] or None
 
 
 def retrieve_current_counties(db):
