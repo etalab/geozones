@@ -17,7 +17,7 @@ _ = lambda s: s
 region = Level('fr/region', _('French region'), country)
 epci = Level('fr/epci', _('French intermunicipal (EPCI)'), region)
 county = Level('fr/departement', _('French county'), region)
-district = Level('fr/district', _('French district'), county)
+district = Level('fr/arrondissement', _('French district'), county)
 town = Level('fr/commune', _('French town'), district, epci)
 canton = Level('fr/canton', _('French canton'), county)
 
@@ -360,7 +360,7 @@ def process_insee_cog(db, filename):
 
                 if district_code:
                     district_code = ''.join((county_code, district_code))
-                    district_id = 'fr/district/{0}'.format(district_code)
+                    district_id = 'fr/arrondissement/{0}'.format(district_code)
                     if district_id not in districts and region and county:
                         districts[district_id] = [region['_id'], county['_id']]
 
