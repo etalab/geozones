@@ -3,10 +3,11 @@ import os
 
 # Initial downloads.
 BASE = 'https://github.com/etalab/geohisto/'
-TOWNS_URL = BASE + 'raw/master/exports/towns/towns.csv'
-COUNTIES_URL = BASE + 'raw/master/exports/counties/counties.csv'
-REGIONS_URL = BASE + 'raw/master/exports/regions/regions.csv'
-URLS = [TOWNS_URL, COUNTIES_URL, REGIONS_URL]
+URLS = [
+    BASE + 'raw/master/exports/towns/towns.csv',
+    BASE + 'raw/master/exports/counties/counties.csv',
+    BASE + 'raw/master/exports/regions/regions.csv'
+]
 
 
 def _iter_over_csv(filename):
@@ -16,7 +17,7 @@ def _iter_over_csv(filename):
             yield i, line
 
 
-def load_towns(zones, root):
+def load_communes(zones, root):
     """Load towns from GeoHisto."""
     filename = os.path.join(root, 'towns.csv')
     data = [{
@@ -43,8 +44,8 @@ def load_towns(zones, root):
     return len(result.inserted_ids)
 
 
-def load_counties(zones, root):
-    """Load counties from GeoHisto."""
+def load_departements(zones, root):
+    """Load departements from GeoHisto."""
     filename = os.path.join(root, 'counties.csv')
     data = [{
         '_id': line['id'],
@@ -131,11 +132,11 @@ def retrieve_zone(db, level, code=None, before=None, after=None):
     return zone and zone[0] or None
 
 
-def retrieve_current_counties(db):
+def retrieve_current_departements(db):
     return retrieve_zones(db, 'fr/departement', after='2016-01-01')
 
 
-def retrieve_current_county(db, code=None):
+def retrieve_current_departement(db, code=None):
     return retrieve_zone(db, 'fr/departement', code, after='2016-01-01')
 
 

@@ -17,7 +17,7 @@ from tools import (
 )
 from geo import root
 from francehisto import (
-    load_towns, load_counties, load_regions, URLS as GEOHISTO_URLS
+    load_communes, load_departements, load_regions, URLS as GEOHISTO_URLS
 )
 
 # Importing levels modules in order (international first)
@@ -120,10 +120,10 @@ def preload(drop):
     total = load_regions(zones, DL_DIR)
     success('Done: Loaded {0} regions'.format(total))
     info('Load counties')
-    total = load_counties(zones, DL_DIR)
+    total = load_departements(zones, DL_DIR)
     success('Done: Loaded {0} counties'.format(total))
     info('Load towns')
-    total = load_towns(zones, DL_DIR)
+    total = load_communes(zones, DL_DIR)
     success('Done: Loaded {0} towns'.format(total))
 
 

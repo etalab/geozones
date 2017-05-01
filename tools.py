@@ -1,6 +1,9 @@
+import csv
+import io
 from contextlib import contextmanager
 from os.path import basename
 from urllib.request import urlopen, Request
+from zipfile import ZipFile
 
 import click
 
@@ -36,7 +39,8 @@ def ok(text):
 
 def unicodify(string):
     '''Ensure a string is unicode and serializable'''
-    return string.decode('unicode_escape') if isinstance(string, bytes) else string
+    return (string.decode('unicode_escape')
+            if isinstance(string, bytes) else string)
 
 
 def extract_meta_from_headers(url):
@@ -58,3 +62,12 @@ def extract_meta_from_headers(url):
         size = 1  # Fake for progress bar.
 
     return filename, size
+
+
+def iter_over_cog(zipname, filename):
+    with ZipFile(zipname) as cogzip:
+        with cogzip.open(filename) as tsvfile:
+            tsvio = io.TextIOWrapper(tsvfile, encoding='cp1252')
+            reader = csv.DictReader(tsvio, delimiter='\t')
+            for row in reader:
+                yield row
