@@ -136,6 +136,16 @@ def retrieve_current_departements(db):
     return retrieve_zones(db, 'fr/departement', after='2016-01-01')
 
 
+def retrieve_current_metro_departements(db):
+    return [zone for zone in retrieve_current_departements(db)
+            if len(zone['code']) == 2]
+
+
+def retrieve_current_drom_departements(db):
+    return [zone for zone in retrieve_current_departements(db)
+            if len(zone['code']) == 3]
+
+
 def retrieve_current_departement(db, code=None):
     return retrieve_zone(db, 'fr/departement', code, after='2016-01-01')
 

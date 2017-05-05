@@ -120,8 +120,8 @@ class Level(object):
         with fiona.open('/{0}'.format(shp),
                         vfs='zip://{0}'.format(filename),
                         encoding='latin-1') as collection:
-            info('Extracting {0} elements from {1} ({2} {3})',
-                 len(collection), basename(filename), collection.driver,
+            info('Extracting {0} elements from {1} => {2} ({3} {4})',
+                 len(collection), basename(filename), shp, collection.driver,
                  to_string(collection.crs))
 
             for polygon in collection:
@@ -191,6 +191,9 @@ class Level(object):
                 zone = db.find_one({'_id': zoneid})
                 if not zone:
                     warning('Zone {0} not found'.format(zoneid))
+                    continue
+                if 'geom' not in zone:
+                    warning('Zone {0} without geometry'.format(zone['name']))
                     continue
                 shp = shape(zone['geom'])
                 if not shp.is_valid:

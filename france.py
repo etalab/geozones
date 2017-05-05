@@ -2,11 +2,12 @@ import csv
 
 from francehisto import (
     retrieve_zone, retrieve_current_departement, retrieve_current_region,
-    retrieve_current_departements
+    retrieve_current_metro_departements, retrieve_current_drom_departements
 )
-from geo import Level, country
+from geo import Level, country, country_subset
 from tools import info, success, warning, unicodify, iter_over_cog
 from dbpedia import DBPedia
+from geozones import DB
 
 
 _ = lambda s: s
@@ -32,7 +33,6 @@ LYON_DISTRICTS = ['COM6938{0}@1942-01-01'.format(i) for i in range(1, 9)]
 
 # Overseas territories as counties
 OVERSEAS = {
-    'pm': ('975', 'Saint-Piere-et-Miquelon'),
     'bl': ('977', 'Saint-Barthélemy'),
     'mf': ('978', 'Saint-Martin'),
     'wf': ('986', 'Wallis-et-Futuna'),
@@ -41,12 +41,16 @@ OVERSEAS = {
     'tf': ('984', 'Terres australes et antarctiques françaises'),
 }
 
-FR_DOM_DEPARTEMENTS = ('971', '972', '973', '974', '976')
 
-FR_DOMTOM_DEPARTEMENTS = (
-    '971', '972', '973', '974', '975', '976', '977', '978', '984', '986',
-    '987', '988'
-)
+country_subset.aggregate(
+    'fr/metro', _('Metropolitan France'),
+    [zone['_id'] for zone in retrieve_current_metro_departements(DB())],
+    parents=['country/fr', 'country-group/ue', 'country-group/world'])
+
+country_subset.aggregate(
+    'fr/drom', 'DROM',
+    [zone['_id'] for zone in retrieve_current_drom_departements(DB())],
+    parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
 
 @district.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
@@ -463,28 +467,21 @@ def compute_commune_with_districts_population(db, filename):
 def attach_counties_to_subcountries(db, filename):
     info('Attaching French Metropolitan counties')
     ids = [departement['_id']
-           for departement in retrieve_current_departements(db)]
+           for departement in retrieve_current_metro_departements(db)]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset/fr/metro'}}
     )
     success('Attached {0} French Metropolitan children', result.modified_count)
 
-    info('Attaching French DOM counties')
-    ids = ['fr/departement/{0}' .format(c) for c in FR_DOM_DEPARTEMENTS]
+    info('Attaching French DROM counties')
+    ids = [departement['_id']
+           for departement in retrieve_current_drom_departements(db)]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
-        {'$addToSet': {'parents': 'country-subset/fr/dom'}}
+        {'$addToSet': {'parents': 'country-subset/fr/drom'}}
     )
-    success('Attached {0} French DOM children', result.modified_count)
-
-    info('Attaching French DOM/TOM counties')
-    ids = ['fr/departement/{0}' .format(c) for c in FR_DOMTOM_DEPARTEMENTS]
-    result = db.update_many(
-        {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
-        {'$addToSet': {'parents': 'country-subset/fr/domtom'}}
-    )
-    success('Attached {0} French DOM/TOM children', result.modified_count)
+    success('Attached {0} French DROM children', result.modified_count)
 
 
 @canton.postprocessor()
