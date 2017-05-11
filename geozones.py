@@ -176,14 +176,14 @@ def postprocess(ctx, only, exclude):
     '''
     Perform post-processing.
 
-    Take from 2 hours and a half and 6 hours.
+    Take between 2 hours and 6 hours.
 
     Take care of the order, especially `process_insee_cog` and
     `compute_region_population` might need to be run again with
     the `-o` option.
 
     Excluding `fetch_missing_data_from_dbpedia` with the `-e`
-    option will reduce the duration to 2 minutes.
+    option will reduce the duration to 3 minutes.
     '''
     title(textwrap.dedent(postprocess.__doc__))
     zones = DB()
@@ -298,7 +298,7 @@ def full(ctx, drop, pretty, split, compress, serialization, keys):
     '''
     Perfom full processing, execute all operations from download to dist.
 
-    Take about 3 hours.
+    Take more than 3 hours.
     '''
     title(textwrap.dedent(full.__doc__))
     ctx.invoke(download)

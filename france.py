@@ -84,10 +84,13 @@ def extract_french_epci(db, polygon):
     siren = props['siren_epci'].lower()
     return {
         'code': siren,
-        'name': unicodify(props.get('nom_osm') or props['nom_epci']),
+        'name': props.get('nom_osm') and
+        unicodify(props.get('nom_osm').encode('latin-1').decode('utf-8')) or
+        unicodify(props['nom_epci'].encode('latin-1').decode('utf-8')),
         'population': props['ptot_epci'],
         'area': props['surf_km2'],
-        'wikipedia': unicodify(props['wikipedia']),
+        'wikipedia': props['wikipedia'] and unicodify(
+            props['wikipedia'].encode('latin-1').decode('utf-8')) or '',
         'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
         'keys': {
             'siren': siren,
@@ -123,7 +126,7 @@ def extract_overseas_departement(db, polygon):
         }
 
 
-@departement.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20170102-shp.zip', simplify=0.005)  # NOQA
+@departement.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20170102-100m.zip')  # NOQA
 def extract_french_departement(db, polygon):
     '''
     Extract a french departement informations from a MultiPolygon.
@@ -134,7 +137,7 @@ def extract_french_departement(db, polygon):
     code_insee = props['code_insee']
     if code_insee == '69D':  # Not handled at the geohisto level (yet?).
         code_insee = '69'
-    zone = retrieve_zone(db, departement.id, code_insee, '9999-12-31')
+    zone = retrieve_zone(db, departement.id, code_insee, after='2016-01-01')
     if not zone:
         return
     zone['keys']['nuts3'] = props['nuts3']
@@ -328,15 +331,12 @@ def attach_epci(db, filename):
     '''
     info('Processing EPCI town list')
     processed = 0
-    # epci_region = {}
     with open(filename, encoding='cp1252') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=';')
         for row in reader:
             siren = row['siren_epci']
             insee = row['insee'].lower()
-            # region = row['region']
-            # epci_region[siren] = region
-            epci_id = 'fr/epci/{0}'.format(siren)
+            epci_id = 'EPCI{0}'.format(siren)
             if db.find_one_and_update(
                     {'level': commune.id, 'code': insee},
                     {'$addToSet': {'parents': epci_id}}):
