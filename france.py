@@ -2,7 +2,8 @@ import csv
 
 from francehisto import (
     retrieve_zone, retrieve_current_departement, retrieve_current_region,
-    retrieve_current_metro_departements, retrieve_current_drom_departements
+    retrieve_current_metro_departements, retrieve_current_drom_departements,
+    retrieve_current_collectivite, retrieve_current_collectivites
 )
 from geo import Level, country, country_subset
 from tools import info, success, warning, unicodify, iter_over_cog
@@ -16,6 +17,8 @@ _ = lambda s: s
 region = Level('fr/region', _('French region'), country)
 epci = Level('fr/epci', _('French intermunicipal (EPCI)'), region)
 departement = Level('fr/departement', _('French county'), region)
+collectivite = Level('fr/collectivite', _('French overseas collectivities'),
+                     region)
 district = Level('fr/arrondissement', _('French district'), departement)
 commune = Level('fr/commune', _('French town'), district, epci)
 canton = Level('fr/canton', _('French canton'), departement)
@@ -31,16 +34,6 @@ MARSEILLE_DISTRICTS = [
 
 LYON_DISTRICTS = ['COM6938{0}@1942-01-01'.format(i) for i in range(1, 9)]
 
-# Overseas territories as counties
-OVERSEAS = {
-    'bl': ('977', 'Saint-Barthélemy'),
-    'mf': ('978', 'Saint-Martin'),
-    'wf': ('986', 'Wallis-et-Futuna'),
-    'pf': ('987', 'Polynésie française'),
-    'nc': ('988', 'Nouvelle-Calédonie'),
-    'tf': ('984', 'Terres australes et antarctiques françaises'),
-}
-
 
 country_subset.aggregate(
     'fr/metro', _('Metropolitan France'),
@@ -50,6 +43,12 @@ country_subset.aggregate(
 country_subset.aggregate(
     'fr/drom', 'DROM',
     [zone['_id'] for zone in retrieve_current_drom_departements(DB())],
+    parents=['country/fr', 'country-group/ue', 'country-group/world'])
+
+country_subset.aggregate(
+    'fr/dromcom', 'DROM-COM',
+    [zone['_id'] for zone in retrieve_current_drom_departements(DB())] +
+    [zone['_id'] for zone in retrieve_current_collectivites(DB())],
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
 
@@ -83,6 +82,7 @@ def extract_french_epci(db, polygon):
     props = polygon['properties']
     siren = props['siren_epci'].lower()
     return {
+        '_id': 'EPCI{}'.format(siren),  # For consistency with INSEE ids.
         'code': siren,
         'name': props.get('nom_osm') and
         unicodify(props.get('nom_osm').encode('latin-1').decode('utf-8')) or
@@ -100,26 +100,27 @@ def extract_french_epci(db, polygon):
     }
 
 
-@departement.extractor('http://thematicmapping.org/downloads/TM_WORLD_BORDERS-0.3.zip')  # NOQA
-def extract_overseas_departement(db, polygon):
+@collectivite.extractor('http://thematicmapping.org/downloads/TM_WORLD_BORDERS-0.3.zip')  # NOQA
+def extract_overseas_collectivities(db, polygon):
     '''
-    Extract overseas departement from their WorldBorder country.
+    Extract overseas collectivities from their WorldBorder country.
     Based on data from http://thematicmapping.org/downloads/world_borders.php
     '''
     props = polygon['properties']
-    iso = props['ISO2'].lower()
-    if iso in OVERSEAS:
-        code, name = OVERSEAS[iso]
+    iso2 = props['ISO2'].lower()
+    collectivite = retrieve_current_collectivite(db, iso2)
+    if collectivite:
         return {
-            'code': code,
-            'name': unicodify(name),
+            '_id': collectivite['_id'],
+            'code': collectivite['code'],
+            'name': collectivite['name'],
             'population': props['POP2005'],
             'area': int(props['AREA']),
             'parents': ['country/fr', 'country-group/ue',
                         'country-group/world'],
             'keys': {
-                'insee': code,
-                'iso2': iso,
+                'insee': collectivite['code'],
+                'iso2': iso2,
                 'iso3': props['ISO3'].lower(),
                 'un': props['UN'],
             }

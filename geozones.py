@@ -3,6 +3,7 @@ import json
 import os
 import tarfile
 import textwrap
+import urllib
 from os.path import basename, join, exists
 from urllib.request import FancyURLopener
 
@@ -17,7 +18,8 @@ from tools import (
 )
 from geo import root
 from francehisto import (
-    load_communes, load_departements, load_regions, URLS as GEOHISTO_URLS
+    load_communes, load_departements, load_collectivites, load_regions,
+    URLS as GEOHISTO_URLS
 )
 
 # Importing levels modules in order (international first)
@@ -76,7 +78,10 @@ def download(ctx):
     urls = set([url for lst in urls for url in lst])
     for url in list(urls) + GEOHISTO_URLS:
         info('Dealing with {0}'.format(url))
-        filename, size = extract_meta_from_headers(url)
+        try:
+            filename, size = extract_meta_from_headers(url)
+        except urllib.error.HTTPError:
+            warning('Error with URL {0}.'.format(url))
         target = join(DL_DIR, filename)
         if exists(target):
             info('Skipping {0} because it already exists.'.format(filename))
@@ -122,6 +127,9 @@ def preload(drop):
     info('Load counties')
     total = load_departements(zones, DL_DIR)
     success('Done: Loaded {0} counties'.format(total))
+    info('Load overseas collectivities')
+    total = load_collectivites(zones, DL_DIR)
+    success('Done: Loaded {0} overseas collectivities'.format(total))
     info('Load towns')
     total = load_communes(zones, DL_DIR)
     success('Done: Loaded {0} towns'.format(total))

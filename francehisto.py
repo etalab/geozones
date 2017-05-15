@@ -4,8 +4,9 @@ import os
 # Initial downloads.
 BASE = 'https://github.com/etalab/geohisto/'
 URLS = [
-    BASE + 'raw/master/exports/towns/towns.csv',
-    BASE + 'raw/master/exports/counties/counties.csv',
+    BASE + 'raw/master/exports/communes/communes.csv',
+    BASE + 'raw/master/exports/departements/departements.csv',
+    BASE + 'raw/master/exports/collectivites/collectivites.csv',
     BASE + 'raw/master/exports/regions/regions.csv'
 ]
 
@@ -19,7 +20,7 @@ def _iter_over_csv(filename):
 
 def load_communes(zones, root):
     """Load towns from GeoHisto."""
-    filename = os.path.join(root, 'towns.csv')
+    filename = os.path.join(root, 'communes.csv')
     data = [{
         '_id': line['id'],
         'code': line['insee_code'],
@@ -46,12 +47,37 @@ def load_communes(zones, root):
 
 def load_departements(zones, root):
     """Load departements from GeoHisto."""
-    filename = os.path.join(root, 'counties.csv')
+    filename = os.path.join(root, 'departements.csv')
     data = [{
         '_id': line['id'],
         'code': line['insee_code'],
         'level': 'fr/departement',
         'name': line['name'],
+        'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
+                    line['parents'].split(';')),
+        'keys': {
+            'insee': line['insee_code'],
+        },
+        'successors': line['successors'].split(';'),
+        'ancestors': line['ancestors'].split(';'),
+        'validity': {
+            'start': line['start_datetime'].split(' ')[0],
+            'end': line['end_datetime'].split(' ')[0]
+        }
+    } for i, line in _iter_over_csv(filename)]
+    result = zones.insert_many(data)
+    return len(result.inserted_ids)
+
+
+def load_collectivites(zones, root):
+    """Load collectivites from GeoHisto."""
+    filename = os.path.join(root, 'collectivites.csv')
+    data = [{
+        '_id': line['id'],
+        'code': line['insee_code'],
+        'level': 'fr/collectivite',
+        'name': line['name'],
+        'iso2': line['iso2'],
         'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
                     line['parents'].split(';')),
         'keys': {
@@ -148,6 +174,15 @@ def retrieve_current_drom_departements(db):
 
 def retrieve_current_departement(db, code=None):
     return retrieve_zone(db, 'fr/departement', code, after='2016-01-01')
+
+
+def retrieve_current_collectivites(db):
+    return retrieve_zones(db, 'fr/collectivite', after='2016-01-01')
+
+
+def retrieve_current_collectivite(db, iso2):
+    zone = list(db.find({'level': 'fr/collectivite', 'iso2': iso2}).limit(1))
+    return zone and zone[0] or None
 
 
 def retrieve_current_region(db, code=None):
