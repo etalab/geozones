@@ -203,23 +203,6 @@ def extract_2016_french_commune(db, polygon):
     return zone
 
 
-@commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20131220-100m-shp.zip')  # NOQA
-def extract_2014_french_commune(db, polygon):
-    '''
-    Extract a french town informations from a MultiPolygon.
-    Based on data from:
-    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
-    '''
-    props = polygon['properties']
-    zone = retrieve_zone(db, commune.id, props['insee'], '2014-12-31')
-    if not zone:
-        return
-    zone['area'] = int(props['surf_m2']) / 10**6
-    zone['wikipedia'] = (props['wikipedia'] and
-                         props['wikipedia'].encode('latin-1').decode('utf-8'))
-    return zone
-
-
 @commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20150101-100m-shp.zip')  # NOQA
 def extract_2015_french_commune(db, polygon):
     '''
@@ -229,6 +212,23 @@ def extract_2015_french_commune(db, polygon):
     '''
     props = polygon['properties']
     zone = retrieve_zone(db, commune.id, props['insee'], '2015-12-31')
+    if not zone:
+        return
+    zone['area'] = int(props['surf_m2']) / 10**6
+    zone['wikipedia'] = (props['wikipedia'] and
+                         props['wikipedia'].encode('latin-1').decode('utf-8'))
+    return zone
+
+
+@commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20131220-100m-shp.zip')  # NOQA
+def extract_2014_french_commune(db, polygon):
+    '''
+    Extract a french town informations from a MultiPolygon.
+    Based on data from:
+    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    '''
+    props = polygon['properties']
+    zone = retrieve_zone(db, commune.id, props['insee'], '2014-12-31')
     if not zone:
         return
     zone['area'] = int(props['surf_m2']) / 10**6

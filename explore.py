@@ -8,7 +8,7 @@ app = Flask(__name__)
 
 
 def jsonify(data):
-    return Response(json.dumps(data),  mimetype='application/json')
+    return Response(json.dumps(data), mimetype='application/json')
 
 
 @app.route('/')
