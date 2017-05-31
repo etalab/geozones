@@ -42,7 +42,7 @@ UE_COUNTRIES = (
 )
 
 country_group.aggregate('ue', _('European Union'), [
-    'country/{0}'.format(code) for code in UE_COUNTRIES
+    'country:{0}'.format(code) for code in UE_COUNTRIES
 ], parents=['country-group/world'], keys={'default': 'ue'})
 
 

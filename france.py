@@ -27,26 +27,28 @@ canton = Level('fr/canton', _('French canton'), departement)
 iris = Level('fr/iris', _('Iris (Insee districts)'), commune)
 
 # Cities with districts
-PARIS_DISTRICTS = ['COM751{0:0>2}@1942-01-01'.format(i) for i in range(1, 21)]
+PARIS_DISTRICTS = [
+    'fr:commune:751{0:0>2}@1942-01-01'.format(i) for i in range(1, 21)]
 
 MARSEILLE_DISTRICTS = [
-    'COM132{0:0>2}@1942-01-01'.format(i) for i in range(1, 17)]
+    'fr:commune:132{0:0>2}@1942-01-01'.format(i) for i in range(1, 17)]
 
-LYON_DISTRICTS = ['COM6938{0}@1942-01-01'.format(i) for i in range(1, 9)]
+LYON_DISTRICTS = [
+    'fr:commune:6938{0}@1942-01-01'.format(i) for i in range(1, 9)]
 
 
 country_subset.aggregate(
-    'fr/metro', _('Metropolitan France'),
+    'fr:metro', _('Metropolitan France'),
     [zone['_id'] for zone in retrieve_current_metro_departements(DB())],
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
 country_subset.aggregate(
-    'fr/drom', 'DROM',
+    'fr:drom', 'DROM',
     [zone['_id'] for zone in retrieve_current_drom_departements(DB())],
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
 
 country_subset.aggregate(
-    'fr/dromcom', 'DROM-COM',
+    'fr:dromcom', 'DROM-COM',
     [zone['_id'] for zone in retrieve_current_drom_departements(DB())] +
     [zone['_id'] for zone in retrieve_current_collectivites(DB())],
     parents=['country/fr', 'country-group/ue', 'country-group/world'])
@@ -82,7 +84,7 @@ def extract_french_epci(db, polygon):
     props = polygon['properties']
     siren = props['siren_epci'].lower()
     return {
-        '_id': 'EPCI{}'.format(siren),  # For consistency with INSEE ids.
+        '_id': 'fr:epci:{}'.format(siren),
         'code': siren,
         'name': props.get('nom_osm') and
         unicodify(props.get('nom_osm').encode('latin-1').decode('utf-8')) or
@@ -266,9 +268,10 @@ def extract_french_canton(db, polygon):
         parents.append(departement['_id'])
     return {
         'code': code,
-        'name': unicodify(props['nom']),
+        'name': unicodify(props['nom'].encode('latin-1').decode('utf-8')),
         'population': props['population'],
-        'wikipedia': unicodify(props['wikipedia']),
+        'wikipedia': props['wikipedia'] and unicodify(
+            props['wikipedia'].encode('latin-1').decode('utf-8')),
         'parents': parents,
         'keys': {
             'ref': code,
@@ -337,7 +340,7 @@ def attach_epci(db, filename):
         for row in reader:
             siren = row['siren_epci']
             insee = row['insee'].lower()
-            epci_id = 'EPCI{0}'.format(siren)
+            epci_id = 'fr:epci:{0}'.format(siren)
             if db.find_one_and_update(
                     {'level': commune.id, 'code': insee},
                     {'$addToSet': {'parents': epci_id}}):
@@ -362,7 +365,7 @@ def process_insee_cog(db, filename):
 
         if district_code:
             district_code = ''.join((departement_code, district_code))
-            district_id = 'fr/arrondissement/{0}'.format(district_code)
+            district_id = 'fr:arrondissement:{0}'.format(district_code)
             if district_id not in districts and region and departement:
                 districts[district_id] = [region['_id'], departement['_id']]
 
@@ -379,7 +382,7 @@ def process_insee_cog(db, filename):
 @commune.postprocessor()
 def commune_with_districts(db, filename):
     info('Attaching Paris town districts')
-    paris = db.find_one({'_id': 'COM75056@1942-01-01'})
+    paris = db.find_one({'_id': 'fr:commune:75056@1942-01-01'})
     parents = paris['parents']
     parents.append(paris['_id'])
     result = db.update_many(
@@ -388,7 +391,7 @@ def commune_with_districts(db, filename):
     success('Attached {0} districts to Paris', result.modified_count)
 
     info('Attaching Marseille town districts')
-    marseille = db.find_one({'_id': 'COM13055@1942-01-01'})
+    marseille = db.find_one({'_id': 'fr:commune:13055@1942-01-01'})
     parents = marseille['parents']
     parents.append(marseille['_id'])
     result = db.update_many(
@@ -397,7 +400,7 @@ def commune_with_districts(db, filename):
     success('Attached {0} districts to Marseille', result.modified_count)
 
     info('Attaching Lyon town districts')
-    lyon = db.find_one({'_id': 'COM69123@1942-01-01'})
+    lyon = db.find_one({'_id': 'fr:commune:69123@1942-01-01'})
     parents = lyon['parents']
     parents.append(lyon['_id'])
     result = db.update_many(
@@ -442,7 +445,7 @@ def compute_commune_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': PARIS_DISTRICTS}})
     population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
-        {'_id': 'COM75056@1942-01-01'},
+        {'_id': 'fr:commune:75056@1942-01-01'},
         {'$set': {'population': population}})
     success('Computed population for Paris')
 
@@ -450,7 +453,7 @@ def compute_commune_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': MARSEILLE_DISTRICTS}})
     population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
-        {'_id': 'COM13055@1942-01-01'},
+        {'_id': 'fr:commune:13055@1942-01-01'},
         {'$set': {'population': population}})
     success('Computed population for Marseille')
 
@@ -458,7 +461,7 @@ def compute_commune_with_districts_population(db, filename):
     districts = db.find({'_id': {'$in': LYON_DISTRICTS}})
     population = sum(district.get('population', 0) for district in districts)
     db.find_one_and_update(
-        {'_id': 'COM69123@1942-01-01'},
+        {'_id': 'fr:commune:69123@1942-01-01'},
         {'$set': {'population': population}})
     success('Computed population for Lyon')
 
@@ -491,7 +494,7 @@ def attach_canton_parents(db, filename):
     canton_processed = 0
     for zone in db.find({'level': canton.id}):
         candidates_ids = [p for p in zone['parents']
-                          if p.startswith('DEP')]
+                          if p.startswith('fr:departement:')]
         if len(candidates_ids) < 1:
             warning('No parent candidate found for: {0}', zone['_id'])
             continue
@@ -515,7 +518,8 @@ def attach_and_clean_iris(db, filename):
     info('Attaching French IRIS to their region')
     processed = 0
     for zone in db.find({'level': iris.id}):
-        candidates_ids = [p for p in zone['parents'] if p.startswith('COM')]
+        candidates_ids = [p for p in zone['parents']
+                          if p.startswith('fr:commune:')]
         if len(candidates_ids) < 1:
             warning('No parent candidate found for: {0}', zone['_id'])
             continue
@@ -564,7 +568,7 @@ def compute_departement_area_and_population(db, filename):
     pipeline = [
         {'$match': {'level': commune.id}},
         {'$unwind': '$parents'},
-        {'$match': {'parents': {'$regex': 'DEP'}}},
+        {'$match': {'parents': {'$regex': 'fr:departement'}}},
         {'$group': {
             '_id': '$parents',
             'area': {'$sum': '$area'},
@@ -589,7 +593,7 @@ def compute_region_population(db, filename):
     pipeline = [
         {'$match': {'level': departement.id}},
         {'$unwind': '$parents'},
-        {'$match': {'parents': {'$regex': 'REG'}}},
+        {'$match': {'parents': {'$regex': 'fr:region'}}},
         {'$group': {'_id': '$parents', 'population': {'$sum': '$population'}}}
     ]
     for result in db.aggregate(pipeline):

@@ -75,7 +75,7 @@ def load_collectivites(zones, root):
     data = [{
         '_id': line['id'],
         'code': line['insee_code'],
-        'level': 'fr/collectivite',
+        'level': 'fr/collectivite-outre-mer',
         'name': line['name'],
         'iso2': line['iso2'],
         'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
@@ -177,11 +177,13 @@ def retrieve_current_departement(db, code=None):
 
 
 def retrieve_current_collectivites(db):
-    return retrieve_zones(db, 'fr/collectivite', after='2016-01-01')
+    return retrieve_zones(db, 'fr/collectivite-outre-mer', after='2016-01-01')
 
 
 def retrieve_current_collectivite(db, iso2):
-    zone = list(db.find({'level': 'fr/collectivite', 'iso2': iso2}).limit(1))
+    zone = list(db.find({
+        'level': 'fr/collectivite-outre-mer', 'iso2': iso2
+    }).limit(1))
     return zone and zone[0] or None
 
 

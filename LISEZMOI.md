@@ -5,6 +5,8 @@ Le fichier [france.py](france.py) traite les spécificités françaises.
 Les niveaux suivants sont gérés : régions, départements, EPCI,
 collectivités d’outre-mer, arrondissements, communes et cantons.
 
+Ils utilisent les [GeoIDs](https://github.com/etalab/geoids).
+
 Les sources de données sont :
 
 * [les exports OpenStreetMap](http://osm13.openstreetmap.fr/~cquest/openfla/export/)

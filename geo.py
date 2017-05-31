@@ -145,8 +145,9 @@ class Level(object):
                     zone.update(geom=geom.__geo_interface__)
                     zone_id = zone.get('_id')
                     if not zone_id:
-                        zone_id = '/'.join((self.id, zone['code']))
-                        zone.update(_id=zone_id, level=self.id)
+                        zone_id = ':'.join(
+                            (self.id.replace('/', ':'), zone['code']))
+                    zone.update(_id=zone_id, level=self.id)
                     db.find_one_and_replace(
                         {'_id': zone_id}, zone, upsert=True)
                     loaded += 1
@@ -219,7 +220,7 @@ class Level(object):
             warning('No geometry for {0}', zones)
 
         data = {
-            '_id': '/'.join((self.id, code)),
+            '_id': ':'.join((self.id, code)),
             'code': code,
             'level': self.id,
             'name': name,
