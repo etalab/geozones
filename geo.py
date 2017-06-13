@@ -145,8 +145,7 @@ class Level(object):
                     zone.update(geom=geom.__geo_interface__)
                     zone_id = zone.get('_id')
                     if not zone_id:
-                        zone_id = ':'.join(
-                            (self.id.replace('/', ':'), zone['code']))
+                        zone_id = ':'.join((self.id, zone['code']))
                     zone.update(_id=zone_id, level=self.id)
                     db.find_one_and_replace(
                         {'_id': zone_id}, zone, upsert=True)
@@ -178,8 +177,8 @@ class Level(object):
             zones = [zone['_id'] for zone in zones(db)]
         for zoneid in zones:
             # Resolve wildcard
-            if zoneid.endswith('/*'):
-                level = zoneid.replace('/*', '')
+            if zoneid.endswith(':*'):
+                level = zoneid.replace(':*', '')
                 ids = db.distinct('_id', {'level': level})
                 resolved = self.build_aggregate(
                     code, name, ids, properties, db)

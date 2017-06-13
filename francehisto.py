@@ -24,12 +24,12 @@ def load_communes(zones, root):
     data = [{
         '_id': line['id'],
         'code': line['insee_code'],
-        'level': 'fr/commune',
+        'level': 'fr:commune',
         'name': line['name'],
         'population': (0
                        if line['population'] == 'NULL'
                        else int(line['population'])),
-        'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
+        'parents': (['country:fr', 'country-group:ue', 'country-group:world'] +
                     line['parents'].split(';')),
         'keys': {
             'insee': line['insee_code'],
@@ -51,9 +51,9 @@ def load_departements(zones, root):
     data = [{
         '_id': line['id'],
         'code': line['insee_code'],
-        'level': 'fr/departement',
+        'level': 'fr:departement',
         'name': line['name'],
-        'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
+        'parents': (['country:fr', 'country-group:ue', 'country-group:world'] +
                     line['parents'].split(';')),
         'keys': {
             'insee': line['insee_code'],
@@ -75,10 +75,10 @@ def load_collectivites(zones, root):
     data = [{
         '_id': line['id'],
         'code': line['insee_code'],
-        'level': 'fr/collectivite-outre-mer',
+        'level': 'fr:collectivite-outre-mer',
         'name': line['name'],
         'iso2': line['iso2'],
-        'parents': (['country/fr', 'country-group/ue', 'country-group/world'] +
+        'parents': (['country:fr', 'country-group:ue', 'country-group:world'] +
                     line['parents'].split(';')),
         'keys': {
             'insee': line['insee_code'],
@@ -100,13 +100,13 @@ def load_regions(zones, root):
     data = [{
         '_id': line['id'],
         'code': line['insee_code'],
-        'level': 'fr/region',
+        'level': 'fr:region',
         'name': line['name'],
         'area': int(line['surface']),
         'population': int(line['population']),
         'wikipedia': line['wikipedia'],
         'parents': [
-            'country/fr', 'country-group/ue', 'country-group/world'
+            'country:fr', 'country-group:ue', 'country-group:world'
         ],
         'keys': {
             'insee': line['insee_code'],
@@ -159,7 +159,7 @@ def retrieve_zone(db, level, code=None, before=None, after=None):
 
 
 def retrieve_current_departements(db):
-    return retrieve_zones(db, 'fr/departement', after='2016-01-01')
+    return retrieve_zones(db, 'fr:departement', after='2016-01-01')
 
 
 def retrieve_current_metro_departements(db):
@@ -173,19 +173,19 @@ def retrieve_current_drom_departements(db):
 
 
 def retrieve_current_departement(db, code=None):
-    return retrieve_zone(db, 'fr/departement', code, after='2016-01-01')
+    return retrieve_zone(db, 'fr:departement', code, after='2016-01-01')
 
 
 def retrieve_current_collectivites(db):
-    return retrieve_zones(db, 'fr/collectivite-outre-mer', after='2016-01-01')
+    return retrieve_zones(db, 'fr:collectivite-outre-mer', after='2016-01-01')
 
 
 def retrieve_current_collectivite(db, iso2):
     zone = list(db.find({
-        'level': 'fr/collectivite-outre-mer', 'iso2': iso2
+        'level': 'fr:collectivite-outre-mer', 'iso2': iso2
     }).limit(1))
     return zone and zone[0] or None
 
 
 def retrieve_current_region(db, code=None):
-    return retrieve_zone(db, 'fr/region', code, after='2016-01-01')
+    return retrieve_zone(db, 'fr:region', code, after='2016-01-01')

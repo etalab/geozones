@@ -14,17 +14,17 @@ from geozones import DB
 _ = lambda s: s
 
 
-region = Level('fr/region', _('French region'), country)
-epci = Level('fr/epci', _('French intermunicipal (EPCI)'), region)
-departement = Level('fr/departement', _('French county'), region)
-collectivite = Level('fr/collectivite', _('French overseas collectivities'),
+region = Level('fr:region', _('French region'), country)
+epci = Level('fr:epci', _('French intermunicipal (EPCI)'), region)
+departement = Level('fr:departement', _('French county'), region)
+collectivite = Level('fr:collectivite', _('French overseas collectivities'),
                      region)
-district = Level('fr/arrondissement', _('French district'), departement)
-commune = Level('fr/commune', _('French town'), district, epci)
-canton = Level('fr/canton', _('French canton'), departement)
+district = Level('fr:arrondissement', _('French district'), departement)
+commune = Level('fr:commune', _('French town'), district, epci)
+canton = Level('fr:canton', _('French canton'), departement)
 
 # Not opendata yet
-iris = Level('fr/iris', _('Iris (Insee districts)'), commune)
+iris = Level('fr:iris', _('Iris (Insee districts)'), commune)
 
 # Cities with districts
 PARIS_DISTRICTS = [
@@ -40,18 +40,18 @@ LYON_DISTRICTS = [
 country_subset.aggregate(
     'fr:metro', _('Metropolitan France'),
     [zone['_id'] for zone in retrieve_current_metro_departements(DB())],
-    parents=['country/fr', 'country-group/ue', 'country-group/world'])
+    parents=['country:fr', 'country-group:ue', 'country-group:world'])
 
 country_subset.aggregate(
     'fr:drom', 'DROM',
     [zone['_id'] for zone in retrieve_current_drom_departements(DB())],
-    parents=['country/fr', 'country-group/ue', 'country-group/world'])
+    parents=['country:fr', 'country-group:ue', 'country-group:world'])
 
 country_subset.aggregate(
     'fr:dromcom', 'DROM-COM',
     [zone['_id'] for zone in retrieve_current_drom_departements(DB())] +
     [zone['_id'] for zone in retrieve_current_collectivites(DB())],
-    parents=['country/fr', 'country-group/ue', 'country-group/world'])
+    parents=['country:fr', 'country-group:ue', 'country-group:world'])
 
 
 @district.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
@@ -68,7 +68,7 @@ def extract_french_district(db, polygon):
         'name': props['nom'],
         'area': props['surf_km2'],
         'wikipedia': props['wikipedia'],
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+        'parents': ['country:fr', 'country-group:ue', 'country-group:world'],
         'keys': {
             'insee': code,
         }
@@ -93,7 +93,7 @@ def extract_french_epci(db, polygon):
         'area': props['surf_km2'],
         'wikipedia': props['wikipedia'] and unicodify(
             props['wikipedia'].encode('latin-1').decode('utf-8')) or '',
-        'parents': ['country/fr', 'country-group/ue', 'country-group/world'],
+        'parents': ['country:fr', 'country-group:ue', 'country-group:world'],
         'keys': {
             'siren': siren,
             'osm': props['osm_id'],
@@ -118,8 +118,8 @@ def extract_overseas_collectivities(db, polygon):
             'name': collectivite['name'],
             'population': props['POP2005'],
             'area': int(props['AREA']),
-            'parents': ['country/fr', 'country-group/ue',
-                        'country-group/world'],
+            'parents': ['country:fr', 'country-group:ue',
+                        'country-group:world'],
             'keys': {
                 'insee': collectivite['code'],
                 'iso2': iso2,
@@ -262,7 +262,7 @@ def extract_french_canton(db, polygon):
     '''
     props = polygon['properties']
     code = props['ref'].lower()
-    parents = ['country/fr', 'country-group/ue', 'country-group/world']
+    parents = ['country:fr', 'country-group:ue', 'country-group:world']
     departement = retrieve_current_departement(db, props['dep'])
     if departement:
         parents.append(departement['_id'])
@@ -288,9 +288,9 @@ def extract_iris(db, polygon):
     '''
     props = polygon['properties']
     code = props['DCOMIRIS']
-    parents = ['country/fr', 'country-group/ue', 'country-group/world']
+    parents = ['country:fr', 'country-group:ue', 'country-group:world']
     commune = retrieve_zone(
-        db, 'fr/commune', props['DEPCOM'], after='2013-01-01')
+        db, 'fr:commune', props['DEPCOM'], after='2013-01-01')
     if commune:
         parents.append(commune['_id'])
     name = unicodify(props['NOM_IRIS']).title()
@@ -474,7 +474,7 @@ def attach_counties_to_subcountries(db, filename):
            for departement in retrieve_current_metro_departements(db)]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
-        {'$addToSet': {'parents': 'country-subset/fr/metro'}}
+        {'$addToSet': {'parents': 'country-subset:fr:metro'}}
     )
     success('Attached {0} French Metropolitan children', result.modified_count)
 
@@ -483,7 +483,7 @@ def attach_counties_to_subcountries(db, filename):
            for departement in retrieve_current_drom_departements(db)]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
-        {'$addToSet': {'parents': 'country-subset/fr/drom'}}
+        {'$addToSet': {'parents': 'country-subset:fr:drom'}}
     )
     success('Attached {0} French DROM children', result.modified_count)
 
