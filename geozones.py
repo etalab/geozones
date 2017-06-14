@@ -2,6 +2,8 @@
 import json
 import os
 import tarfile
+import textwrap
+import urllib
 from os.path import basename, join, exists
 from urllib.request import FancyURLopener
 
@@ -15,6 +17,10 @@ from tools import (
     extract_meta_from_headers
 )
 from geo import root
+from francehisto import (
+    load_communes, load_departements, load_collectivites, load_regions,
+    URLS as GEOHISTO_URLS
+)
 
 # Importing levels modules in order (international first)
 import international  # noqa
@@ -59,17 +65,28 @@ def cli(ctx, level, home):
 @cli.command()
 @click.pass_context
 def download(ctx):
-    '''Download sources datasets'''
-    title('Downloading required datasets')
+    '''
+    Download required datasets (~700Mb).
+
+    Take about 15 minutes depending on your connexion bandwidth.
+    '''
+    title(textwrap.dedent(download.__doc__))
     if not exists(DL_DIR):
         os.makedirs(DL_DIR)
 
     urls = (level.urls for level in ctx.obj['levels'] if level.urls)
     urls = set([url for lst in urls for url in lst])
-    for url in urls:
+    for url in list(urls) + GEOHISTO_URLS:
         info('Dealing with {0}'.format(url))
-        filename, size = extract_meta_from_headers(url)
-        info('Downloading {0}'.format(filename))
+        try:
+            filename, size = extract_meta_from_headers(url)
+        except urllib.error.HTTPError:
+            warning('Error with URL {0}.'.format(url))
+        target = join(DL_DIR, filename)
+        if exists(target):
+            info('Skipping {0} because it already exists.'.format(filename))
+            continue
+        info('Downloading {0} into {1}'.format(filename, DL_DIR))
         with click.progressbar(length=size) as bar:
             def reporthook(blocknum, blocksize, totalsize):
                 read = blocknum * blocksize
@@ -80,17 +97,19 @@ def download(ctx):
                 else:
                     bar.update(read)
 
-            urlretrieve(url, join(DL_DIR, filename), reporthook=reporthook)
+            urlretrieve(url, target, reporthook=reporthook)
 
 
 @cli.command()
-@click.pass_context
 @click.option('-d', '--drop', is_flag=True)
-def load(ctx, drop):
-    '''Load zones from a folder of zip files containing shapefiles'''
-    title('Extracting zones from datasets')
-    zones = DB()
+def preload(drop):
+    '''
+    Preload all historical zones from geohisto.
 
+    Take a few seconds.
+    '''
+    title(textwrap.dedent(preload.__doc__))
+    zones = DB()
     if drop:
         info('Drop existing collection')
         zones.drop()
@@ -102,11 +121,40 @@ def load(ctx, drop):
     info('Creating index (parents)')
     zones.create_index('parents')
 
+    info('Load regions')
+    total = load_regions(zones, DL_DIR)
+    success('Done: Loaded {0} regions'.format(total))
+    info('Load counties')
+    total = load_departements(zones, DL_DIR)
+    success('Done: Loaded {0} counties'.format(total))
+    info('Load overseas collectivities')
+    total = load_collectivites(zones, DL_DIR)
+    success('Done: Loaded {0} overseas collectivities'.format(total))
+    info('Load towns')
+    total = load_communes(zones, DL_DIR)
+    success('Done: Loaded {0} towns'.format(total))
+
+
+@cli.command()
+@click.pass_context
+@click.option('-o', '--only', default=None)
+@click.option('-e', '--exclude', default=None)
+def load(ctx, only, exclude):
+    '''
+    Load zones from a folder of zip files containing shapefiles
+
+    Take about 25 minutes.
+
+    Excluding `extract_iris` with the `-e` option will reduce
+    the duration to 10 minutes.
+    '''
+    title(textwrap.dedent(load.__doc__))
+    zones = DB()
     total = 0
 
     for level in ctx.obj['levels']:
         info('Processing level "{0}"'.format(level.id))
-        total += level.load(DL_DIR, zones)
+        total += level.load(DL_DIR, zones, only, exclude)
 
     success('Done: Loaded {0} zones'.format(total))
 
@@ -114,8 +162,10 @@ def load(ctx, drop):
 @cli.command()
 @click.pass_context
 def aggregate(ctx):
-    '''Perform zones aggregations'''
-    title('Performing zones aggregations')
+    '''
+    Perform zones aggregations.
+    '''
+    title(textwrap.dedent(aggregate.__doc__))
     zones = DB()
 
     total = 0
@@ -129,13 +179,25 @@ def aggregate(ctx):
 @cli.command()
 @click.pass_context
 @click.option('-o', '--only', default=None)
-def postprocess(ctx, only):
-    '''Perform some postprocessing'''
-    title('Performing post-processing')
+@click.option('-e', '--exclude', default=None)
+def postprocess(ctx, only, exclude):
+    '''
+    Perform post-processing.
+
+    Take between 2 hours and 6 hours.
+
+    Take care of the order, especially `process_insee_cog` and
+    `compute_region_population` might need to be run again with
+    the `-o` option.
+
+    Excluding `fetch_missing_data_from_dbpedia` with the `-e`
+    option will reduce the duration to 3 minutes.
+    '''
+    title(textwrap.dedent(postprocess.__doc__))
     zones = DB()
 
     for level in ctx.obj['levels']:
-        level.postprocess(DL_DIR, zones, only)
+        level.postprocess(DL_DIR, zones, only, exclude)
 
     success('Post-processing done')
 
@@ -242,12 +304,14 @@ def dist(ctx, pretty, split, compress, serialization, keys):
 @click.option('-k', '--keys', default=None)
 def full(ctx, drop, pretty, split, compress, serialization, keys):
     '''
-    Perfom a full processing
+    Perfom full processing, execute all operations from download to dist.
 
-    Execute all operations from download to dist
+    Take more than 3 hours.
     '''
+    title(textwrap.dedent(full.__doc__))
     ctx.invoke(download)
-    ctx.invoke(load, drop=drop)
+    ctx.invoke(preload, drop=drop)
+    ctx.invoke(load)
     ctx.invoke(aggregate)
     ctx.invoke(postprocess)
     ctx.invoke(dist, pretty=pretty, split=split, compress=compress,

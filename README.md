@@ -3,6 +3,8 @@ GeoZones
 
 Simplistic spatial/administrative referential.
 
+*Pour une documentation relative aux niveaux administratifs français, veuillez consulter le fichier [LISEZMOI.md](LISEZMOI.md).*
+
 This project is a set of tools to produce a shared spatial/administrative referential based on open datasets.
 
 The purpose is to be embeddable in applications for autocompletion. There is no purpose of universality (country levels are not comparable) nor precision (most sourced datasets have a 100m precision).
@@ -59,7 +61,7 @@ A zone is a spatial polygon for a given level. It has at least one unique code (
 
 Labels are optionally translatable.
 
-Some zones are defined as an aggregation of other zones. They are called _aggregation_ in geozones and builded after all data are loaded.
+Some zones are defined as an aggregation of other zones. They are called _aggregation_ in geozones and built after all data are loaded.
 
 The following properties are exported in the GeoJSON output:
 
@@ -133,6 +135,8 @@ Perform zones aggregations for zones defined as aggregation of others.
 -------------
 
 Perform some non geospatial processing (ex: set the postal codes, attach the parents…).
+
+`--exclude` and `--only` options make possible to run a set of postprocess function(s).
 
 `dist`
 ------

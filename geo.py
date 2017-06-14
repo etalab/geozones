@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-
+import traceback
 from os.path import join, basename
 from zipfile import ZipFile
 
 import fiona
-
 from fiona.crs import to_string
 from shapely.geometry import shape, MultiPolygon
 from shapely.ops import cascaded_union
@@ -13,7 +12,9 @@ from tools import warning, error, info, success, extract_meta_from_headers
 
 
 class Level(object):
-    '''This class handle level declaration and processing'''
+    '''
+    This class handle level declaration and processing.
+    '''
 
     def __init__(self, id, label, *parents):
         # TODO: handle multiple parents
@@ -29,10 +30,11 @@ class Level(object):
 
     def extractor(self, url, simplify=None):
         '''
-        Register a dataset and its extractor
+        Register a dataset and its extractor.
 
-        The function should have the following signature: ``function(polygon)``
-        where polygon will be a Shapely extracted polygon with GeoJSON interface.
+        The function should have the following signature:
+        ``function(polygon)`` where polygon will be a Shapely extracted
+        polygon with GeoJSON interface.
         It should return a dictionnary with extrated attributes, at least:
 
             - name
@@ -58,15 +60,15 @@ class Level(object):
 
     @property
     def urls(self):
-        '''The required datasets URLs list'''
+        '''The required datasets URLs list.'''
         return [url for url, _ in self.extractors + self.postprocessors if url]
 
     def aggregate(self, id, label, zones, **properties):
-        '''Register a aggregate for this level'''
+        '''Register a aggregate for this level.'''
         self.aggregates.append((id, label, zones, properties))
 
     def traverse(self):
-        '''Deep tree traversal'''
+        '''Deep tree traversal.'''
         levels = [self]
         children = []
         while len(levels) > 0:
@@ -75,60 +77,93 @@ class Level(object):
                 children.extend(level.children)
             levels, children = children, []
 
-    def load(self, workdir, db):
-        '''Extract territories from a given file for a given level with a given extractor function'''
+    def load(self, workdir, db, only=None, exclude=None):
+        '''
+        Extract territories from a given file for a given level
+        with a given extractor function.
+        '''
         loaded = 0
         for url, extractor in self.extractors:
+            if only is not None and extractor.__name__ != only:
+                continue
+            if exclude is not None and extractor.__name__ == exclude:
+                continue
             loaded += self.process_dataset(workdir, db, url, extractor)
-        success('Loaded {0} zones for level {1}'.format(loaded, self.id))
+        success('Loaded {0} zones for level {1}', loaded, self.id)
         return loaded
 
     def process_dataset(self, workdir, db, url, extractor):
-        '''Extract territories from a given file for a given level with a given extractor function'''
+        '''
+        Extract territories from a given file for a given level
+        with a given extractor function.
+        '''
         loaded = 0
         filename = join(workdir, basename(url))
 
         # Identify the shapefile to avoid multiple file error on GDAL 2
-
         with ZipFile(filename) as z:
             candidates = [n for n in z.namelist() if n.endswith('.shp')]
+            if len(candidates) > 1:
+                # Try the exact name of the zip file for arrondissements
+                # given that the epci shapefile is present too...
+                for candidate in candidates:
+                    # Remove useless prefix and suffix.
+                    guessed_name = filename[len('downloads/'):-len('-shp.zip')]
+                    if guessed_name in candidate:
+                        candidates = [candidate]
+                        break
             if len(candidates) != 1:
-                raise ValueError('Unable to find a unique shpaefile into {0}'.format(filename))
+                msg = 'Unable to find a unique shapefile into {0} {1}'
+                raise ValueError(msg.format(filename, candidates))
             shp = candidates[0]
 
-        with fiona.open('/{0}'.format(shp), vfs='zip://{0}'.format(filename), encoding='utf8') as collection:
-            info('Extracting {0} elements from {1} ({2} {3})'.format(
-                len(collection), basename(filename), collection.driver, to_string(collection.crs)
-            ))
+        with fiona.open('/{0}'.format(shp),
+                        vfs='zip://{0}'.format(filename),
+                        encoding='latin-1') as collection:
+            info('Extracting {0} elements from {1} => {2} ({3} {4})',
+                 len(collection), basename(filename), shp, collection.driver,
+                 to_string(collection.crs))
 
             for polygon in collection:
                 try:
-                    zone = extractor(polygon)
+                    zone = extractor(db, polygon)
                     if not zone:
                         continue
-                    zone['keys'] = dict((k, v) for k, v in zone.get('keys', {}).items() if v is not None)
+                    zone['keys'] = dict(
+                        (k, v)
+                        for k, v in zone.get('keys', {}).items()
+                        if v is not None)
                     geom = shape(polygon['geometry'])
                     if extractor.simplify:
                         geom = geom.simplify(extractor.simplify)
                     if geom.geom_type == 'Polygon':
                         geom = MultiPolygon([geom])
                     elif geom.geom_type != 'MultiPolygon':
-                        warning('Unsupported geometry type "{0}" for "{1}"'.format(geom.geom_type, zone['name']))
+                        warning('Unsupported geometry type "{0}" for "{1}"',
+                                geom.geom_type, zone['name'])
                         continue
-                    zoneid = '/'.join((self.id, zone['code']))
-                    zone.update(_id=zoneid, level=self.id, geom=geom.__geo_interface__)
-                    db.find_one_and_replace({'_id': zoneid}, zone, upsert=True)
+                    zone.update(geom=geom.__geo_interface__)
+                    zone_id = zone.get('_id')
+                    if not zone_id:
+                        zone_id = ':'.join((self.id, zone['code']))
+                    zone.update(_id=zone_id, level=self.id)
+                    db.find_one_and_replace(
+                        {'_id': zone_id}, zone, upsert=True)
                     loaded += 1
-                except Exception as e:
-                    error('Error extracting polygon {0}: {1}', polygon['properties'], str(e))
+                except Exception:
+                    error('Error extracting polygon {0}',
+                          polygon['properties'])
+                    error(traceback.format_exc())
 
-        info('Loaded {0} zones for level {1} from file {2}'.format(loaded, self.id, filename))
+        info('Loaded {0} zones for level {1} from file {2}',
+             loaded, self.id, filename)
         return loaded
 
     def build_aggregates(self, db):
         processed = 0
         for code, name, zones, properties in self.aggregates:
-            info('Building aggregate "{0}" (level={1}, code={2})'.format(name, self.id, code))
+            info('Building aggregate "{0}" (level={1}, code={2})',
+                 name, self.id, code)
             zone = self.build_aggregate(code, name, zones, properties, db)
             db.find_one_and_replace({'_id': zone['_id']}, zone, upsert=True)
             processed += 1
@@ -138,12 +173,15 @@ class Level(object):
         geoms = []
         populations = []
         areas = []
+        if callable(zones):
+            zones = [zone['_id'] for zone in zones(db)]
         for zoneid in zones:
             # Resolve wildcard
-            if zoneid.endswith('/*'):
-                level = zoneid.replace('/*', '')
+            if zoneid.endswith(':*'):
+                level = zoneid.replace(':*', '')
                 ids = db.distinct('_id', {'level': level})
-                resolved = self.build_aggregate(code, name, ids, properties, db)
+                resolved = self.build_aggregate(
+                    code, name, ids, properties, db)
                 geoms.append(shape(resolved['geom']))
                 if resolved.get('population'):
                     populations.append(resolved['population'])
@@ -154,12 +192,16 @@ class Level(object):
                 if not zone:
                     warning('Zone {0} not found'.format(zoneid))
                     continue
+                if 'geom' not in zone:
+                    warning('Zone {0} without geometry'.format(zone['name']))
+                    continue
                 shp = shape(zone['geom'])
                 if not shp.is_valid:
-                    warning('Skipping invalid polygon for {0}'.format(zone['name']))
+                    warning(('Skipping invalid polygon for {0}'
+                             '').format(zone['name']))
                     continue
                 if shp.is_empty:
-                    warning('Skipping empty polygon for {0}'.format(zone['name']))
+                    warning('Skipping empty polygon for {0}', zone['name'])
                     continue
                 geoms.append(shp)
                 if zone.get('population'):
@@ -167,26 +209,33 @@ class Level(object):
                 if zone.get('area'):
                     areas.append(zone['area'])
 
-        geom = cascaded_union(geoms)
-        if geom.geom_type == 'Polygon':
-            geom = MultiPolygon([geom])
+        if geoms:
+            accumulated_geom = cascaded_union(geoms)
+            if accumulated_geom.geom_type == 'Polygon':
+                accumulated_geom = MultiPolygon([accumulated_geom])
+            geom = accumulated_geom.__geo_interface__
+        else:
+            geom = None
+            warning('No geometry for {0}', zones)
 
         data = {
-            '_id': '/'.join((self.id, code)),
+            '_id': ':'.join((self.id, code)),
             'code': code,
             'level': self.id,
             'name': name,
             'population': sum(populations),
             'area': sum(areas),
-            'geom': geom.__geo_interface__
+            'geom': geom
         }
         data.update(properties)
         return data
 
-    def postprocess(self, workdir, db, only=None):
-        '''Perform postprocessing'''
+    def postprocess(self, workdir, db, only=None, exclude=None):
+        '''Perform postprocessing.'''
         for url, processor in self.postprocessors:
             if only is not None and processor.__name__ != only:
+                continue
+            if exclude is not None and processor.__name__ == exclude:
                 continue
             filepath = None
             if url:
