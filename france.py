@@ -129,7 +129,7 @@ def extract_overseas_collectivities(db, polygon):
         }
 
 
-@departement.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/departements-20170102-100m.zip')  # NOQA
+@departement.extractor('https://www.data.gouv.fr/s/resources/contours-des-departements-francais-issus-d-openstreetmap/20170614-200948/departements-20170102-simplified.zip')  # NOQA
 def extract_french_departement(db, polygon):
     '''
     Extract a french departement informations from a MultiPolygon.
