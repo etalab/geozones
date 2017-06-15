@@ -77,9 +77,15 @@ class DBPedia(object):
         except IndexError:
             return result
         if 'population' in results:
-            result['population'] = int(results['population']['value'])
+            try:
+                result['population'] = int(results['population']['value'])
+            except ValueError:
+                pass
         if 'area' in results:
-            result['area'] = int(round(float(results['area']['value'])))
+            try:
+                result['area'] = int(round(float(results['area']['value'])))
+            except ValueError:
+                pass
         return result
 
     def fetch_flag_or_blazon(self):
