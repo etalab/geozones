@@ -28,7 +28,7 @@ def zone_to_feature(zone, keys):
     feature = {
         'id': zone['_id'],
         'type': 'Feature',
-        'geometry': zone.get('geom', ''),
+        'geometry': zone.get('geom'),
         'properties': properties
     }
     if keys is not None and 'geometry' not in keys:
