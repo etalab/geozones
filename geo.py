@@ -16,11 +16,12 @@ class Level(object):
     This class handle level declaration and processing.
     '''
 
-    def __init__(self, id, label, *parents):
+    def __init__(self, id, label, admin_level, *parents):
         # TODO: handle multiple parents
         self.id = id
         self.label = label
         self.parents = parents
+        self.admin_level = admin_level
         self.children = []
         self.extractors = []
         self.postprocessors = []
@@ -247,6 +248,6 @@ class Level(object):
 # Force translatables string extraction
 _ = lambda s: s  # noqa
 # Register first levels
-root = country_group = Level('country-group', _('Country group'))
-country = Level('country', _('Country'), country_group)
-country_subset = Level('country-subset', _('Country subset'), country)
+root = country_group = Level('country-group', _('Country group'), 10)
+country = Level('country', _('Country'), 20, country_group)
+country_subset = Level('country-subset', _('Country subset'), 30, country)

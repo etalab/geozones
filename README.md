@@ -53,7 +53,44 @@ GeoZones use MongoDB as working storage.
 
 ### Levels
 
-They define relationships between levels and their names. They are not stored into any database.
+They define relationships between levels and their names.
+They are not stored into the database but they are exported with the following properties:
+
+| Property    | Description                                                                 |
+|-------------|-----------------------------------------------------------------------------|
+| id          | A string identifier for the level (ie. `country`, `fr:commune`...)          |
+| label       | The humain string representation in English (ie. `World`). __\*__           |
+| admin_level | An administrative scale index (0 is the biggest and 100 the smallest level) |
+| parents     | The list of known parent levels identifier                                  |
+
+__\*__: Labels are optionally translatables
+
+
+You can contribute your country specific levels.
+Currently geozones support the following levels:
+
+#### Common levels
+
+
+| identifier       | administrative level | description
+|------------------|----------------------|--------------
+| `country-group`  | 10                   | Groups of countries (`World`, `UE`...)
+| `contry`         | 20                   | A country
+| `country-subset` | 30                   | An administrative subset of a country
+
+
+#### France levels
+
+| identifier          | administrative level | description                    |
+|---------------------|----------------------|--------------------------------|
+| `fr:region`         | 40                   | Regions of France              |
+| `fr:epci`           | 68                   | Intercommunality of France     |
+| `fr:departement`    | 60                   | Departements of France         |
+| `fr:collectivite`   | 60                   | French overseas collectivities |
+| `fr:arrondissement` | 70                   | Arrondissements of France      |
+| `fr:commune`        | 80                   | Communes of France             |
+| `fr:canton`         | 98                   | Cantons of France              |
+| `fr:iris`           | 98                   | Iris of France                 |
 
 ### Zones
 
@@ -65,20 +102,20 @@ Some zones are defined as an aggregation of other zones. They are called _aggreg
 
 The following properties are exported in the GeoJSON output:
 
-Property | Description
----------|------------
-id | A unique identifier defined by `<level>/<code>`
-code | The zone unique identifier in this level
-level | The level identifier
-name | The zone display name (can be translatable)
-population | Estimated/approximative population *(optional)*
-area | Estimated/approximative area in km2 *(optional)*
-wikipedia | A Wikipedia reference *(optional)*
-dbpedia | A DBPedia reference *(optional)*
-flag | A DBPedia reference to a flag *(optional)*
-blazon | A DBPedia reference to a blazon *(optional)*
-keys | A dictionary of known keys/code for this zone
-parents | A list of every known parent zone identifier
+| Property   | Description                                      |
+|------------|--------------------------------------------------|
+| id         | A unique identifier defined by `<level>:<code>`  |
+| code       | The zone unique identifier in this level         |
+| level      | The level identifier                             |
+| name       | The zone display name (can be translatable)      |
+| population | Estimated/approximative population *(optional)*  |
+| area       | Estimated/approximative area in km2 *(optional)* |
+| wikipedia  | A Wikipedia reference *(optional)*               |
+| dbpedia    | A DBPedia reference *(optional)*                 |
+| flag       | A DBPedia reference to a flag *(optional)*       |
+| blazon     | A DBPedia reference to a blazon *(optional)*     |
+| keys       | A dictionary of known keys/code for this zone    |
+| parents    | A list of every known parent zone identifier     |
 
 > Note that you can choose via the keys option which properties you would like to export during the `dist`ribution step.
 

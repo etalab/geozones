@@ -258,6 +258,7 @@ def dist(ctx, pretty, split, compress, serialization, keys):
         data = [{
             'id': level.id,
             'label': level.label,
+            'admin_level': level.admin_level,
             'parents': [p.id for p in level.parents]
         } for level in ctx.obj['levels']]
         if serialization == 'json':

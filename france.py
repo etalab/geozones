@@ -14,17 +14,17 @@ from geozones import DB
 _ = lambda s: s
 
 
-region = Level('fr:region', _('French region'), country)
-epci = Level('fr:epci', _('French intermunicipal (EPCI)'), region)
-departement = Level('fr:departement', _('French county'), region)
+region = Level('fr:region', _('French region'), 40, country)
+epci = Level('fr:epci', _('French intermunicipal (EPCI)'), 68, region)
+departement = Level('fr:departement', _('French county'), 60, region)
 collectivite = Level('fr:collectivite', _('French overseas collectivities'),
-                     region)
-district = Level('fr:arrondissement', _('French district'), departement)
-commune = Level('fr:commune', _('French town'), district, epci)
-canton = Level('fr:canton', _('French canton'), departement)
+                     60, region)
+district = Level('fr:arrondissement', _('French district'), 70, departement)
+commune = Level('fr:commune', _('French town'), 80, district, epci)
+canton = Level('fr:canton', _('French canton'), 98, departement)
 
 # Not opendata yet
-iris = Level('fr:iris', _('Iris (Insee districts)'), commune)
+iris = Level('fr:iris', _('Iris (Insee districts)'), 98, commune)
 
 # Cities with districts
 PARIS_DISTRICTS = [
