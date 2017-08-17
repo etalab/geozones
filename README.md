@@ -193,6 +193,18 @@ Commands are chainable so you can write:
 $ ./geozones.py download load -d aggregate postprocess dist dist -s status
 ```
 
+### `sourceslist`
+
+Generate a datasets donwload list for external usage.
+
+This allows using an external download manager by example.
+
+**Ex:** using 10 parallels threads with curl:
+
+```bash
+./geozones sourceslist | xargs -P 10 -n 1 curl -O
+```
+
 ## Options
 
 ### `serialization`

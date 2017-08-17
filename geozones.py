@@ -41,6 +41,11 @@ def DB():
     return collection
 
 
+def downloadable_urls(ctx):
+    urls = (level.urls for level in ctx.obj['levels'] if level.urls)
+    return set([url for lst in urls for url in lst] + GEOHISTO_URLS)
+
+
 @click.group(chain=True, context_settings=CONTEXT_SETTINGS)
 @click.option('-l', '--level', multiple=True, help='Limits to given levels')
 @click.option('-H', '--home', envvar='GEOZONES_HOME',
@@ -74,9 +79,7 @@ def download(ctx):
     if not exists(DL_DIR):
         os.makedirs(DL_DIR)
 
-    urls = (level.urls for level in ctx.obj['levels'] if level.urls)
-    urls = set([url for lst in urls for url in lst])
-    for url in list(urls) + GEOHISTO_URLS:
+    for url in downloadable_urls(ctx):
         info('Dealing with {0}'.format(url))
         try:
             filename, size = extract_meta_from_headers(url)
@@ -98,6 +101,13 @@ def download(ctx):
                     bar.update(read)
 
             urlretrieve(url, target, reporthook=reporthook)
+
+
+@cli.command()
+@click.pass_context
+def sourceslist(ctx):
+    '''Generate a datasets donwload list for external usage'''
+    print('\n'.join(downloadable_urls(ctx)))
 
 
 @cli.command()
