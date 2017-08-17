@@ -5,10 +5,10 @@ from .francehisto import (
     retrieve_current_metro_departements, retrieve_current_drom_departements,
     retrieve_current_collectivite, retrieve_current_collectivites
 )
+from .db import DB
+from .dbpedia import DBPedia
 from .model import Level, country, country_subset
 from .tools import info, success, warning, unicodify, iter_over_cog
-from .dbpedia import DBPedia
-from .__main__ import DB
 
 
 _ = lambda s: s

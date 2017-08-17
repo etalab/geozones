@@ -8,9 +8,10 @@ from os.path import basename, join, exists
 from urllib.request import FancyURLopener
 
 import click
-from pymongo import MongoClient, ASCENDING
+from pymongo import ASCENDING
 import msgpack
 
+from .db import DB
 from .tools import (
     info, success, title, ok, error, section, warning,
     extract_meta_from_headers
@@ -28,17 +29,9 @@ from . import france  # noqa
 
 DL_DIR = 'downloads'
 DIST_DIR = 'dist'
-DB_NAME = 'geozones'
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 urlretrieve = FancyURLopener().retrieve
-
-
-def DB():
-    client = MongoClient()
-    db = client[DB_NAME]
-    collection = db.geozones
-    return collection
 
 
 def downloadable_urls(ctx):
