@@ -1,5 +1,5 @@
-from geo import country, country_group
-from tools import info, success
+from .model import country, country_group
+from .tools import info, success
 
 _ = lambda s: s
 

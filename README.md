@@ -34,8 +34,8 @@ $ git clone https://github.com/etalab/geozones.git
 $ cd geozones
 $ virtualenv -p /bin/python3 .
 $ source bin/activate
-$ pip install -r requirements.pip
-$ ./geozones.py
+$ pip install -e .
+$ geozones -h
 ```
 
 ## Model
@@ -122,8 +122,10 @@ Level names and some territories are translatable. They are provided as _gettext
 Here’s the workflow:
 
 ```bash
+# Ensure you have the optionnal tools to process translations
+$ pip install -e .[i18n]
 # Extract translatabls labels
-$ pybabel extract -F babel.cfg -o translations/geozones.pot .
+$ pybabel extract -F babel.cfg -o geozones/translations/geozones.pot .
 # Push updated translations template to Transifex
 $ tx push -s
 # Fetch last translations from Transifex
@@ -135,7 +137,7 @@ $
 To add an extra language:
 
 ```bash
-$ pybabel init -D geozones -i translations/geozones.pot -d translations -l <language code>
+$ pybabel init -D geozones -i geozones/translations/geozones.pot -d geozones/translations -l <language code>
 $ tx push -t -l <language code>
 ```
 
@@ -144,7 +146,7 @@ $ tx push -t -l <language code>
 A set of commands are provided for the build process. You can list them all with:
 
 ```bash
-$ ./geozones.py --help
+$ geozones --help
 ```
 
 ### `download`
@@ -175,7 +177,7 @@ All in one task equivalent to:
 
 ```bash
 # Perform all tasks from download to distibution
-$ ./geozones.py download load aggregate postprocess dist
+$ geozones download load aggregate postprocess dist
 ```
 
 ### `explore`
@@ -190,7 +192,7 @@ Commands are chainable so you can write:
 
 ```bash
 # Perform all tasks from download to distibution
-$ ./geozones.py download load -d aggregate postprocess dist dist -s status
+$ geozones download load -d aggregate postprocess dist dist -s status
 ```
 
 ### `sourceslist`
@@ -202,7 +204,7 @@ This allows using an external download manager by example.
 **Ex:** using 10 parallels threads with curl:
 
 ```bash
-./geozones sourceslist | xargs -P 10 -n 1 curl -O
+mkdir download && cd download && geozones sourceslist | xargs -P 10 -n 1 curl -O
 ```
 
 ## Options

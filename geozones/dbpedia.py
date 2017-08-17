@@ -4,7 +4,7 @@ from string import Template
 
 import requests
 
-from tools import warning
+from .tools import warning
 
 
 RE_WIKIPEDIA = re.compile(

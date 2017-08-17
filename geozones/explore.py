@@ -1,7 +1,8 @@
 from flask import Flask, render_template, Response, json
 
-import geojson
-from geozones import DB, root
+from geozones import geojson
+from geozones.db import DB
+from geozones.model import root
 
 
 app = Flask(__name__)

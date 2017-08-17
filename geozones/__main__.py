@@ -8,37 +8,30 @@ from os.path import basename, join, exists
 from urllib.request import FancyURLopener
 
 import click
-from pymongo import MongoClient, ASCENDING
-import geojson
+from pymongo import ASCENDING
 import msgpack
 
-from tools import (
+from .db import DB
+from .tools import (
     info, success, title, ok, error, section, warning,
     extract_meta_from_headers
 )
-from geo import root
-from francehisto import (
+from .model import root
+from .france.histo import (
     load_communes, load_departements, load_collectivites, load_regions,
     URLS as GEOHISTO_URLS
 )
+from . import geojson
 
 # Importing levels modules in order (international first)
-import international  # noqa
-import france  # noqa
+from . import international  # noqa
+from . import france  # noqa
 
 DL_DIR = 'downloads'
 DIST_DIR = 'dist'
-DB_NAME = 'geozones'
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 urlretrieve = FancyURLopener().retrieve
-
-
-def DB():
-    client = MongoClient()
-    db = client[DB_NAME]
-    collection = db.geozones
-    return collection
 
 
 def downloadable_urls(ctx):
@@ -52,6 +45,7 @@ def downloadable_urls(ctx):
               help='Specify GeoZones working home')
 @click.pass_context
 def cli(ctx, level, home):
+    ctx.obj = {}
     if home:
         os.chdir(home)
     else:
@@ -401,11 +395,11 @@ def explore(debug, launch):
     '''A web interface to explore data'''
     if not debug:  # Avoid dual title
         title('Running the exploration Web interface')
-    import explore
+    from . import explore
     if launch:
         click.launch('http://localhost:5000/')
     explore.run(debug)
 
 
 if __name__ == '__main__':
-    cli(obj={})
+    cli()

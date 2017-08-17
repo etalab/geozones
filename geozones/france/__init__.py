@@ -1,18 +1,17 @@
 import csv
 
-from francehisto import (
+from ..db import DB
+from ..dbpedia import DBPedia
+from ..model import Level, country, country_subset
+from ..tools import info, success, warning, unicodify, iter_over_cog
+
+from .histo import (
     retrieve_zone, retrieve_current_departement, retrieve_current_region,
     retrieve_current_metro_departements, retrieve_current_drom_departements,
     retrieve_current_collectivite, retrieve_current_collectivites
 )
-from geo import Level, country, country_subset
-from tools import info, success, warning, unicodify, iter_over_cog
-from dbpedia import DBPedia
-from geozones import DB
 
-
-_ = lambda s: s
-
+_ = lambda s: s  # noqa: E731
 
 region = Level('fr:region', _('French region'), 40, country)
 epci = Level('fr:epci', _('French intermunicipal (EPCI)'), 68, region)
