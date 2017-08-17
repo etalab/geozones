@@ -123,7 +123,7 @@ Here’s the workflow:
 
 ```bash
 # Extract translatabls labels
-$ pybabel extract -F babel.cfg -o translations/geozones.pot .
+$ pybabel extract -F babel.cfg -o geozones/translations/geozones.pot .
 # Push updated translations template to Transifex
 $ tx push -s
 # Fetch last translations from Transifex
@@ -135,7 +135,7 @@ $
 To add an extra language:
 
 ```bash
-$ pybabel init -D geozones -i translations/geozones.pot -d translations -l <language code>
+$ pybabel init -D geozones -i geozones/translations/geozones.pot -d geozones/translations -l <language code>
 $ tx push -t -l <language code>
 ```
 
@@ -202,7 +202,7 @@ This allows using an external download manager by example.
 **Ex:** using 10 parallels threads with curl:
 
 ```bash
-./geozones sourceslist | xargs -P 10 -n 1 curl -O
+./geozones.py sourceslist | xargs -P 10 -n 1 curl -O
 ```
 
 ## Options

@@ -8,7 +8,7 @@ from fiona.crs import to_string
 from shapely.geometry import shape, MultiPolygon
 from shapely.ops import cascaded_union
 
-from tools import warning, error, info, success, extract_meta_from_headers
+from .tools import warning, error, info, success, extract_meta_from_headers
 
 
 class Level(object):

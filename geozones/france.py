@@ -1,14 +1,14 @@
 import csv
 
-from francehisto import (
+from .francehisto import (
     retrieve_zone, retrieve_current_departement, retrieve_current_region,
     retrieve_current_metro_departements, retrieve_current_drom_departements,
     retrieve_current_collectivite, retrieve_current_collectivites
 )
-from geo import Level, country, country_subset
-from tools import info, success, warning, unicodify, iter_over_cog
-from dbpedia import DBPedia
-from geozones import DB
+from .model import Level, country, country_subset
+from .tools import info, success, warning, unicodify, iter_over_cog
+from .dbpedia import DBPedia
+from .__main__ import DB
 
 
 _ = lambda s: s

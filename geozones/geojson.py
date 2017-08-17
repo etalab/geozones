@@ -1,7 +1,7 @@
 import fiona
 import json
 
-from tools import unicodify
+from .tools import unicodify
 
 
 def zone_to_feature(zone, keys):

@@ -9,22 +9,22 @@ from urllib.request import FancyURLopener
 
 import click
 from pymongo import MongoClient, ASCENDING
-import geojson
 import msgpack
 
-from tools import (
+from .tools import (
     info, success, title, ok, error, section, warning,
     extract_meta_from_headers
 )
-from geo import root
-from francehisto import (
+from .model import root
+from .francehisto import (
     load_communes, load_departements, load_collectivites, load_regions,
     URLS as GEOHISTO_URLS
 )
+from . import geojson
 
 # Importing levels modules in order (international first)
-import international  # noqa
-import france  # noqa
+from . import international  # noqa
+from . import france  # noqa
 
 DL_DIR = 'downloads'
 DIST_DIR = 'dist'
@@ -401,7 +401,7 @@ def explore(debug, launch):
     '''A web interface to explore data'''
     if not debug:  # Avoid dual title
         title('Running the exploration Web interface')
-    import explore
+    from . import explore
     if launch:
         click.launch('http://localhost:5000/')
     explore.run(debug)
