@@ -43,8 +43,8 @@ $ git clone https://github.com/etalab/geozones.git
 $ cd geozones
 $ virtualenv -p /bin/python3 .
 $ source bin/activate
-$ pip install -r requirements.pip
-$ ./geozones.py
+$ pip install -e .
+$ geozones -h
 ```
 
 ## Modèle

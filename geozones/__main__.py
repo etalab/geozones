@@ -52,6 +52,7 @@ def downloadable_urls(ctx):
               help='Specify GeoZones working home')
 @click.pass_context
 def cli(ctx, level, home):
+    ctx.obj = {}
     if home:
         os.chdir(home)
     else:
@@ -408,4 +409,4 @@ def explore(debug, launch):
 
 
 if __name__ == '__main__':
-    cli(obj={})
+    cli()
