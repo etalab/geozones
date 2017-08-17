@@ -207,6 +207,10 @@ This allows using an external download manager by example.
 mkdir download && cd download && geozones sourceslist | xargs -P 10 -n 1 curl -O
 ```
 
+### `logos`
+
+Fetch zones logos/flags/blazons from Wikipedia when available.
+
 ## Options
 
 ### `serialization`
