@@ -17,7 +17,7 @@ from .tools import (
     extract_meta_from_headers
 )
 from .model import root
-from .francehisto import (
+from .france.histo import (
     load_communes, load_departements, load_collectivites, load_regions,
     URLS as GEOHISTO_URLS
 )
