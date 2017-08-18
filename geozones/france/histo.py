@@ -1,6 +1,8 @@
 import csv
 import os
 
+from geozones.db import safe_bulk_insert
+
 # Initial downloads.
 BASE = 'https://github.com/etalab/geohisto/'
 URLS = [
@@ -12,10 +14,10 @@ URLS = [
 
 
 def _iter_over_csv(filename):
-    """Generator to iterate of a CSV file, return a tuple (index, content)."""
+    """Generator to iterate over the lines of a CSV file as dict"""
     with open(filename) as csv_file:
-        for i, line in enumerate(csv.DictReader(csv_file)):
-            yield i, line
+        for line in csv.DictReader(csv_file):
+            yield line
 
 
 def load_communes(zones, root):
@@ -40,9 +42,8 @@ def load_communes(zones, root):
             'start': line['start_datetime'].split(' ')[0],
             'end': line['end_datetime'].split(' ')[0]
         }
-    } for i, line in _iter_over_csv(filename)]
-    result = zones.insert_many(data)
-    return len(result.inserted_ids)
+    } for line in _iter_over_csv(filename)]
+    return safe_bulk_insert(zones, data)
 
 
 def load_departements(zones, root):
@@ -64,9 +65,8 @@ def load_departements(zones, root):
             'start': line['start_datetime'].split(' ')[0],
             'end': line['end_datetime'].split(' ')[0]
         }
-    } for i, line in _iter_over_csv(filename)]
-    result = zones.insert_many(data)
-    return len(result.inserted_ids)
+    } for line in _iter_over_csv(filename)]
+    return safe_bulk_insert(zones, data)
 
 
 def load_collectivites(zones, root):
@@ -89,9 +89,8 @@ def load_collectivites(zones, root):
             'start': line['start_datetime'].split(' ')[0],
             'end': line['end_datetime'].split(' ')[0]
         }
-    } for i, line in _iter_over_csv(filename)]
-    result = zones.insert_many(data)
-    return len(result.inserted_ids)
+    } for line in _iter_over_csv(filename)]
+    return safe_bulk_insert(zones, data)
 
 
 def load_regions(zones, root):
@@ -118,9 +117,8 @@ def load_regions(zones, root):
             'start': line['start_datetime'].split(' ')[0],
             'end': line['end_datetime'].split(' ')[0]
         }
-    } for i, line in _iter_over_csv(filename)]
-    result = zones.insert_many(data)
-    return len(result.inserted_ids)
+    } for line in _iter_over_csv(filename)]
+    return safe_bulk_insert(zones, data)
 
 
 def retrieve_zones(db, level, code=None, before=None, after=None):
