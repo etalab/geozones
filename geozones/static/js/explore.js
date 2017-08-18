@@ -11,11 +11,18 @@ var LEVELS_URL = '/levels',
     HOVER_STYLE = {
         fillOpacity: 0.8
     },
-    ATTRIBUTIONS = '&copy; <a href="http://openstreetmap.org">OpenStreetMap</a> / <a href="http://open.mapquest.com/">MapQuest</a>',
-    TILES_URL = 'http://otile{s}.mqcdn.com/tiles/1.0.0/osm/{z}/{x}/{y}.png',
+    HIDPI = (window.devicePixelRatio > 1 || (
+        window.matchMedia
+        && window.matchMedia('(-webkit-min-device-pixel-ratio: 1.25),(min-resolution: 120dpi)').matches)
+    ),
+    ATTRIBUTIONS = '&copy;' + [
+        '<a href="http://openstreetmap.org/copyright">OpenStreetMap</a>',
+        '<a href="https://cartodb.com/attributions">CartoDB</a>'
+    ].join('/'),
+    TILES_URL = `https://cartodb-basemaps-{s}.global.ssl.fastly.net/light_all/{z}/{x}/{y}${HIDPI ? '@2x' : ''}.png`,
+    TILES_CONFIG = {subdomains: 'abcd', attribution: ATTRIBUTIONS},
     $el = $('.map-container'),
     map, levels, current_layer, sidebar;
-
 
 function sort_levels(a, b) {
     return a.position - b.position;
@@ -153,10 +160,7 @@ function on_feature_popup_click(ev, feature) {
 $(function() {
     // Initialize the map
     map = L.map($el[0], {center: [42, 2.4], zoom: 4});
-    L.tileLayer(TILES_URL, {
-        subdomains: '1234',
-        attribution: ATTRIBUTIONS
-    }).addTo(map);
+    L.tileLayer(TILES_URL, TILES_CONFIG).addTo(map);
 
     sidebar = L.control.sidebar('sidebar', {
         position: 'right'
