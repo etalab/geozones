@@ -4,7 +4,7 @@ import json
 from .tools import unicodify
 
 
-def zone_to_feature(zone, keys):
+def zone_to_feature(zone, keys=None):
     '''Serialize a zone into a GeoJSON feature'''
     properties = {
         'level': zone['level'],
@@ -36,7 +36,7 @@ def zone_to_feature(zone, keys):
     return feature
 
 
-def dump_zones(zones, keys):
+def dump_zones(zones, keys=None):
     '''Serialize a zones queryset into a sarializable dict'''
     features = [zone_to_feature(z, keys) for z in zones]
     data = {
