@@ -17,6 +17,7 @@ from .tools import (
     extract_meta_from_headers
 )
 from .model import root
+from .logos import fetch_logos, compress_logos
 from .france.histo import (
     load_communes, load_departements, load_collectivites, load_regions,
     URLS as GEOHISTO_URLS
@@ -321,6 +322,18 @@ def full(ctx, drop, pretty, split, compress, serialization, keys):
     ctx.invoke(postprocess)
     ctx.invoke(dist, pretty=pretty, split=split, compress=compress,
                serialization=serialization, keys=keys)
+
+
+@cli.command()
+@click.pass_context
+@click.option('-c/-nc', '--compress/--no-compress', default=False)
+def logos(ctx, compress):
+    '''Fetch logos from data'''
+    title(logos.__doc__)
+    zones = DB()
+    fetch_logos(zones, DL_DIR)
+    if compress:
+        compress_logos(DL_DIR, DIST_DIR)
 
 
 @cli.command()
