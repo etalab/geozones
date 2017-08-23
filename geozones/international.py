@@ -1,11 +1,11 @@
 from .model import country, country_group
 from .tools import info, success
 
-_ = lambda s: s
+_ = lambda s: s  # noqa: E731
 
 
 @country.extractor('http://naciscdn.org/naturalearth/110m/cultural/ne_110m_admin_0_countries_lakes.zip')  # NOQA
-def extract_country2(db, polygon):
+def extract_country(db, polygon):
     '''
     Extract a country information from single MultiPolygon.
     Based on data from:
