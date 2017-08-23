@@ -1,6 +1,7 @@
 import os
 import tarfile
 
+import click
 import requests
 
 from .tools import info, success
@@ -27,27 +28,31 @@ def fetch_logos(zones, dl_dir):
     path = os.path.join(dl_dir, LOGOS_FOLDER_PATH)
     if not os.path.exists(path):
         os.makedirs(path)
-    for zone in zones.find({'$or': [
-            {'flag': {'$exists':  True}},
-            {'blazon': {'$exists':  True}},
-            {'logo': {'$exists':  True}}
-            ]},
-            no_cursor_timeout=True):
-        filename = zone.get('flag', zone.get('blazon', zone.get('logo')))
-        if not filename:
-            continue
-        filepath = os.path.join(path, filename)
-        if os.path.exists(filepath):
-            continue
-        url = DBPEDIA_MEDIA_URL + filename
-        print('Fetching {url}'.format(url=url))
-        r = requests.get(url, stream=True, headers=HEADERS)
-        if r.status_code == 404:
-            continue
-        with open(filepath, 'wb') as file_destination:
-            for chunk in r.iter_content(chunk_size=1024):
-                file_destination.write(chunk)
-    success('Logos fetched')
+    downloaded = 0
+    query = {'$or': [
+        {'flag': {'$exists':  True}},
+        {'blazon': {'$exists':  True}},
+        {'logo': {'$exists':  True}}
+    ]}
+    count = zones.count(query)
+    cursor = zones.find(query, no_cursor_timeout=True)
+    with click.progressbar(cursor, width=0, length=count) as bar:
+        for zone in bar:
+            filename = zone.get('flag', zone.get('blazon', zone.get('logo')))
+            if not filename:
+                continue
+            filepath = os.path.join(path, filename)
+            if os.path.exists(filepath):
+                continue
+            url = DBPEDIA_MEDIA_URL + filename
+            r = requests.get(url, stream=True, headers=HEADERS)
+            if r.status_code == 404:
+                continue
+            with open(filepath, 'wb') as file_destination:
+                for chunk in r.iter_content(chunk_size=1024):
+                    file_destination.write(chunk)
+                downloaded += 1
+    success('{0} logos fetched for {1} candidates', downloaded, count)
 
 
 def compress_logos(dl_dir, dist_dir):
