@@ -20,7 +20,7 @@ from .model import root
 from .logos import fetch_logos, compress_logos
 from .france.histo import (
     load_communes, load_departements, load_collectivites, load_regions,
-    URLS as GEOHISTO_URLS
+    load_epcis, URLS as GEOHISTO_URLS
 )
 from . import geojson
 
@@ -138,6 +138,9 @@ def preload(drop):
     info('Load towns')
     total = load_communes(zones, DL_DIR)
     success('Done: Loaded {0} towns'.format(total))
+    info('Load EPCIs')
+    total = load_epcis(zones, DL_DIR)
+    success('Done: Loaded {0} EPCIs'.format(total))
 
 
 @cli.command()
