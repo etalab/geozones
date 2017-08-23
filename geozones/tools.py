@@ -1,11 +1,15 @@
 import csv
 import io
+
 from contextlib import contextmanager
+from itertools import islice
 from os.path import basename
 from urllib.request import urlopen, Request
 from zipfile import ZipFile
 
 import click
+
+from shapely.geometry import shape, MultiPolygon
 
 
 def _secho(template=None, **skwargs):
@@ -43,6 +47,13 @@ def unicodify(string):
             if isinstance(string, bytes) else string)
 
 
+def convert_from(string, charset):
+    '''Convert a string from a given charset to utf-8'''
+    if not string:
+        return
+    return string.encode(charset).decode('utf-8')
+
+
 def extract_meta_from_headers(url):
     """Given a `url`, perform a HEAD request and return metadata."""
     req = Request(url, method='HEAD')
@@ -71,3 +82,24 @@ def iter_over_cog(zipname, filename):
             reader = csv.DictReader(tsvio, delimiter='\t')
             for row in reader:
                 yield row
+
+
+def geom_to_multipolygon(geom):
+    '''Cast a raw geometry to a Polygon or a MultiPolygon'''
+    polygon = shape(geom)
+    if polygon.geom_type == 'Polygon':
+        polygon = MultiPolygon([polygon])
+    elif polygon.geom_type != 'MultiPolygon':
+        msg = 'Unsupported geometry type "{0}"'.format(polygon.geom_type)
+        raise ValueError(msg)
+    return polygon
+
+
+def chunker(iterator, size):
+    '''Chunk an iterator into multiple iterator with a given size'''
+    it = iter(iterator)
+    while True:
+        chunk = tuple(islice(it, size))
+        if not chunk:
+            return
+        yield chunk
