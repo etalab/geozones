@@ -6,9 +6,9 @@ from zipfile import ZipFile
 import fiona
 from fiona.crs import to_string
 from shapely.geometry import shape, MultiPolygon
-from shapely.ops import cascaded_union
 
 from .tools import warning, error, info, success, extract_meta_from_headers
+from .tools import aggregate_multipolygons
 
 
 class Level(object):
@@ -211,10 +211,7 @@ class Level(object):
                     areas.append(zone['area'])
 
         if geoms:
-            accumulated_geom = cascaded_union(geoms)
-            if accumulated_geom.geom_type == 'Polygon':
-                accumulated_geom = MultiPolygon([accumulated_geom])
-            geom = accumulated_geom.__geo_interface__
+            geom = aggregate_multipolygons(geoms).__geo_interface__
         else:
             geom = None
             warning('No geometry for {0}', zones)
