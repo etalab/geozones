@@ -177,7 +177,7 @@ All in one task equivalent to:
 
 ```bash
 # Perform all tasks from download to distibution
-$ geozones download load aggregate postprocess dist
+$ geozones download preload load aggregate postprocess dist
 ```
 
 ### `explore`

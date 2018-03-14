@@ -20,7 +20,7 @@ from .model import root
 from .logos import fetch_logos, compress_logos
 from .france.histo import (
     load_communes, load_departements, load_collectivites, load_regions,
-    URLS as GEOHISTO_URLS
+    load_epcis, URLS as GEOHISTO_URLS
 )
 from . import geojson
 
@@ -138,6 +138,9 @@ def preload(drop):
     info('Load towns')
     total = load_communes(zones, DL_DIR)
     success('Done: Loaded {0} towns'.format(total))
+    info('Load EPCIs')
+    total = load_epcis(zones, DL_DIR)
+    success('Done: Loaded {0} EPCIs'.format(total))
 
 
 @cli.command()
@@ -283,7 +286,7 @@ def dist(ctx, pretty, split, compress, serialization, keys):
         filename = 'geozones-translations.tar.xz'
         with ok('Compressing to {0}'.format(filename)):
             with tarfile.open(filename, 'w:xz') as txz:
-                txz.add(join(ctx.obj['home'], 'translations'), 'translations')
+                txz.add(join(ctx.obj['home'], 'geozones', 'translations'), 'translations')
 
         filename = 'geozones-split.tar.xz' if split else 'geozones.tar.xz'
 
@@ -294,7 +297,7 @@ def dist(ctx, pretty, split, compress, serialization, keys):
                 for name in filenames:
                     txz.add(name)
                 # Add translations
-                txz.add(join(ctx.obj['home'], 'translations'), 'translations')
+                txz.add(join(ctx.obj['home'], 'geozones', 'translations'), 'translations')
 
     os.chdir(ctx.obj['home'])
 

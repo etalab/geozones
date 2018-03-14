@@ -37,7 +37,7 @@ def zone_to_feature(zone, keys=None):
 
 
 def dump_zones(zones, keys=None):
-    '''Serialize a zones queryset into a sarializable dict'''
+    '''Serialize a zones queryset into a serializable dict'''
     features = [zone_to_feature(z, keys) for z in zones]
     data = {
         'type': 'FeatureCollection',
@@ -45,6 +45,22 @@ def dump_zones(zones, keys=None):
         'crs': fiona.crs.from_epsg(4326)
     }
     return data
+
+
+def stream_zones(zones):
+    '''Stream a zones queryset as GeoJSON'''
+    yield ''
+    crs = fiona.crs.from_epsg(4326)
+    yield ','.join((
+        '{{"type": "FeatureCollection"',
+        '"crs": "{0}"'.format(crs),
+        '"features": ['
+    ))
+    for i, zone in enumerate(zones):
+        data = json.dumps(zone_to_feature(zone))
+        yield (',' + data) if i else data
+
+    yield ']}'
 
 
 def dumps(zones, pretty=False):
