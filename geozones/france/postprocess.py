@@ -4,12 +4,11 @@ from collections import Counter
 from itertools import groupby
 
 from pymongo import DESCENDING
-from shapely.ops import cascaded_union
 
 from ..dbpedia import execute_sparql_query
 from ..dbpedia import RDF_PREFIXES, SPARQL_PREFIXES, SPARQL_BY_URI
 from ..tools import info, success, warning, iter_over_cog
-from ..tools import geom_to_multipolygon, chunker
+from ..tools import aggregate_multipolygons, geom_to_multipolygon, chunker
 
 from .histo import (
     retrieve_current_departement, retrieve_current_region,
@@ -409,7 +408,8 @@ def attach_epci(db, filename):
         if all(geoms):
             try:
                 polygons = [geom_to_multipolygon(geom) for geom in geoms]
-                zone['geom'] = cascaded_union(polygons).__geo_interface__
+                aggregated = aggregate_multipolygons(polygons)
+                zone['geom'] = aggregated.__geo_interface__
                 db.find_one_and_replace({'_id': zone['_id']}, zone)
                 count['geometries'] += 1
             except Exception as e:

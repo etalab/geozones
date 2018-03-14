@@ -10,6 +10,7 @@ from zipfile import ZipFile
 import click
 
 from shapely.geometry import shape, MultiPolygon
+from shapely.ops import cascaded_union
 
 
 def _secho(template=None, **skwargs):
@@ -87,12 +88,24 @@ def iter_over_cog(zipname, filename):
 def geom_to_multipolygon(geom):
     '''Cast a raw geometry to a Polygon or a MultiPolygon'''
     polygon = shape(geom)
+    if not polygon.is_valid:
+        raise ValueError('Invalid polygon')
+    elif polygon.is_empty:
+        raise ValueError('Empty polygon')
     if polygon.geom_type == 'Polygon':
         polygon = MultiPolygon([polygon])
     elif polygon.geom_type != 'MultiPolygon':
         msg = 'Unsupported geometry type "{0}"'.format(polygon.geom_type)
         raise ValueError(msg)
     return polygon
+
+
+def aggregate_multipolygons(multipolygons):
+    '''Aggregate a list of multipolygons into a single multipolygon'''
+    aggregated = cascaded_union(multipolygons)
+    if aggregated.geom_type == 'Polygon':
+        aggregated = MultiPolygon([aggregated])
+    return aggregated
 
 
 def chunker(iterator, size):
