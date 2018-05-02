@@ -4,10 +4,10 @@ from ..tools import convert_from
 from .histo import (
     retrieve_current_departement, retrieve_current_collectivite
 )
-from .model import canton, collectivite, departement, region, arrondissemnt, commune, iris
+from .model import canton, collectivite, departement, region, arrondissement, commune, iris
 
 
-@arrondissemnt.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
+@arrondissement.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
 def extract_french_district(db, polygon):
     '''
     Extract a french district informations from a MultiPolygon.
