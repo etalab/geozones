@@ -15,7 +15,7 @@ from .histo import (
     retrieve_current_metro_departements, retrieve_current_drom_departements,
 )
 
-from .model import canton, departement, epci, commune, arrondissemnt, iris
+from .model import canton, departement, epci, commune, arrondissement, iris
 from .model import PARIS_DISTRICTS, LYON_DISTRICTS, MARSEILLE_DISTRICTS
 
 '''
@@ -322,14 +322,14 @@ def attach_and_clean_iris(db, filename):
     success('Attached {0} french IRIS to their parents', processed)
 
 
-@arrondissemnt.postprocessor()
+@arrondissement.postprocessor()
 def compute_district_population(db, filename):
     info('Computing french district population by aggregation')
     processed = 0
     pipeline = [
         {'$match': {'level': commune.id}},
         {'$unwind': '$parents'},
-        {'$match': {'parents': {'$regex': arrondissemnt.id}}},
+        {'$match': {'parents': {'$regex': arrondissement.id}}},
         {'$group': {'_id': '$parents', 'population': {'$sum': '$population'}}}
     ]
     for result in db.aggregate(pipeline):

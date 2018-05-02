@@ -13,8 +13,8 @@ epci = Level('fr:epci', _('French intermunicipal (EPCI)'), 68, country)
 departement = Level('fr:departement', _('French county'), 60, region)
 collectivite = Level('fr:collectivite', _('French overseas collectivities'),
                      60, region)
-arrondissemnt = Level('fr:arrondissement', _('French arrondissemnt'), 70, departement)
-commune = Level('fr:commune', _('French town'), 80, arrondissemnt, epci)
+arrondissement = Level('fr:arrondissement', _('French arrondissement'), 70, departement)
+commune = Level('fr:commune', _('French town'), 80, arrondissement, epci)
 canton = Level('fr:canton', _('French canton'), 98, departement)
 
 # Not opendata yet
