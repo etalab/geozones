@@ -14,17 +14,17 @@ def extract_country(db, polygon):
     The main unique code used is ISO2.
     '''
     props = polygon['properties']
-    code = props['iso_a2'].lower()
+    code = props['ISO_A2'].lower()
     return {
         'code': code,
-        'name': props['name'],
-        'population': int(props['pop_est']),
+        'name': props['NAME'],
+        'population': int(props['POP_EST']),
         'parents': ['country-group:world'],
         'keys': {
             'iso2': code,
-            'iso3': props['iso_a3'].lower(),
-            'un': props['un_a3'],
-            'fips': (props.get('fips_10', '') or '').lower() or None,
+            'iso3': props['ISO_A3'].lower(),
+            'un': props['UN_A3'],
+            'fips': (props.get('FIPS_10', '') or '').lower() or None,
         }
     }
 
