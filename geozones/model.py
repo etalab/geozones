@@ -101,6 +101,7 @@ class Level(object):
         loaded = 0
         filename = join(workdir, basename(url))
 
+        info('processing {0}', basename(filename))
         # Identify the shapefile to avoid multiple file error on GDAL 2
         with ZipFile(filename) as z:
             candidates = [n for n in z.namelist() if n.endswith('.shp')]

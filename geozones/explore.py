@@ -1,7 +1,6 @@
-from flask import Flask, render_template, Response, json
+from flask import Flask, render_template, Response, json, current_app
 
 from geozones import geojson
-from geozones.db import DB
 from geozones.model import root
 
 TIMED_LEVELS = ('fr:region', 'fr:epci', 'fr:departement', 'fr:commune')
@@ -33,7 +32,7 @@ def levels_api():
 
 @app.route('/levels/<path:level_id>')
 def level_api(level_id):
-    db = DB()
+    db = current_app.db
     if level_id in TIMED_LEVELS:
         data = db.fetch_zones(level_id, after='2017-01-01')
     else:
@@ -42,5 +41,6 @@ def level_api(level_id):
                     content_type='application/json')
 
 
-def run(debug=False):
-    app.run(debug=debug)
+def run(db, host='localhost', port=5000, debug=False):
+    app.db = db
+    app.run(host=host, port=port, debug=debug)

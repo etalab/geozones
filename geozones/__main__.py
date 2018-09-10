@@ -30,7 +30,10 @@ from . import france  # noqa
 
 DL_DIR = 'downloads'
 DIST_DIR = 'dist'
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+CONTEXT_SETTINGS = {
+    'help_option_names': ['-?', '--help'],
+    'auto_envvar_prefix': 'GEOZONES',
+}
 
 urlretrieve = FancyURLopener().retrieve
 
@@ -42,10 +45,10 @@ def downloadable_urls(ctx):
 
 @click.group(chain=True, context_settings=CONTEXT_SETTINGS)
 @click.option('-l', '--level', multiple=True, help='Limits to given levels')
-@click.option('-H', '--home', envvar='GEOZONES_HOME',
-              help='Specify GeoZones working home')
+@click.option('-m', '--mongo', help='MongoDB database', default='localhost')
+@click.option('-H', '--home', help='Specify GeoZones working home')
 @click.pass_context
-def cli(ctx, level, home):
+def cli(ctx, level, mongo, home):
     ctx.obj = {}
     if home:
         os.chdir(home)
@@ -60,6 +63,8 @@ def cli(ctx, level, home):
             levels.append(l)
 
     ctx.obj['levels'] = levels
+
+    ctx.obj['db'] = DB(mongo)
 
 
 @cli.command()
@@ -107,14 +112,15 @@ def sourceslist(ctx):
 
 @cli.command()
 @click.option('-d', '--drop', is_flag=True)
-def preload(drop):
+@click.pass_context
+def preload(ctx, drop):
     '''
     Preload all historical zones from geohisto.
 
     Take a few seconds.
     '''
     title(textwrap.dedent(preload.__doc__))
-    zones = DB()
+    zones = ctx.obj['db']
     if drop:
         info('Drop existing collection')
         zones.drop()
@@ -157,7 +163,7 @@ def load(ctx, only, exclude):
     the duration to 10 minutes.
     '''
     title(textwrap.dedent(load.__doc__))
-    zones = DB()
+    zones = ctx.obj['db']
     total = 0
 
     for level in ctx.obj['levels']:
@@ -174,7 +180,7 @@ def aggregate(ctx):
     Perform zones aggregations.
     '''
     title(textwrap.dedent(aggregate.__doc__))
-    zones = DB()
+    zones = ctx.obj['db']
 
     total = 0
 
@@ -202,7 +208,7 @@ def postprocess(ctx, only, exclude):
     option will reduce the duration to 3 minutes.
     '''
     title(textwrap.dedent(postprocess.__doc__))
-    zones = DB()
+    zones = ctx.obj['db']
 
     for level in ctx.obj['levels']:
         level.postprocess(DL_DIR, zones, only, exclude)
@@ -223,7 +229,7 @@ def dist(ctx, pretty, split, compress, serialization, keys):
     keys = keys and keys.split(',')
     title('Dumping data to {serialization} with keys {keys}'.format(
         serialization=serialization, keys=keys))
-    geozones = DB()
+    geozones = ctx.obj['db']
     filenames = []
 
     if not exists(DIST_DIR):
@@ -333,7 +339,7 @@ def full(ctx, drop, pretty, split, compress, serialization, keys):
 def logos(ctx, compress):
     '''Fetch logos from data'''
     title(logos.__doc__)
-    zones = DB()
+    zones = ctx.obj['db']
     fetch_logos(zones, DL_DIR)
     if compress:
         compress_logos(DL_DIR, DIST_DIR)
@@ -363,7 +369,7 @@ def status(ctx):
             error('absent')
 
     section('coverage')
-    zones = DB()
+    zones = ctx.obj['db']
     total = 0
     properties = ('population', 'area', 'wikipedia')
     totals = dict((prop, 0) for prop in properties)
@@ -405,16 +411,19 @@ def status(ctx):
 
 
 @cli.command()
+@click.option('-h', '--host', default='localhost', envvar=('HOST', 'GEOZONES_HOST'))
+@click.option('-p', '--port', default=5000)
 @click.option('-d', '--debug', is_flag=True)
 @click.option('-o', '--open', 'launch', is_flag=True)
-def explore(debug, launch):
+@click.pass_context
+def explore(ctx, host, port, debug, launch):
     '''A web interface to explore data'''
     if not debug:  # Avoid dual title
         title('Running the exploration Web interface')
     from . import explore
     if launch:
         click.launch('http://localhost:5000/')
-    explore.run(debug)
+    explore.run(ctx.obj['db'], host=host, port=port, debug=debug)
 
 
 if __name__ == '__main__':

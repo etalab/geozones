@@ -11,8 +11,8 @@ DB_NAME = 'geozones'
 
 class DB(Collection):
 
-    def __init__(self):
-        client = MongoClient()
+    def __init__(self, url):
+        client = MongoClient(url)
         db = client[DB_NAME]
         super().__init__(db, 'geozones')
 
