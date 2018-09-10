@@ -90,15 +90,12 @@ def download(ctx):
             info('Skipping {0} because it already exists.'.format(filename))
             continue
         info('Downloading {0} into {1}'.format(filename, DL_DIR))
-        with click.progressbar(length=size) as bar:
+        with click.progressbar(length=size, width=0) as bar:
             def reporthook(blocknum, blocksize, totalsize):
                 read = blocknum * blocksize
                 if read <= 0:
                     return
-                if read > totalsize:
-                    bar.update(size)
-                else:
-                    bar.update(read)
+                bar.update(blocksize)
 
             urlretrieve(url, target, reporthook=reporthook)
 
