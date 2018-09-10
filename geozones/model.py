@@ -166,6 +166,8 @@ class Level(object):
         for code, name, zones, properties in self.aggregates:
             info('Building aggregate "{0}" (level={1}, code={2})',
                  name, self.id, code)
+            if callable(zones):
+                zones = zones(db)
             zone = self.build_aggregate(code, name, zones, properties, db)
             db.find_one_and_replace({'_id': zone['_id']}, zone, upsert=True)
             processed += 1

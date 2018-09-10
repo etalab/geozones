@@ -33,16 +33,18 @@ LYON_DISTRICTS = [
 
 country_subset.aggregate(
     'fr:metro', _('Metropolitan France'),
-    [zone['_id'] for zone in retrieve_current_metro_departements(DB())],
+    lambda db: [zone['_id'] for zone in retrieve_current_metro_departements(db)],
     parents=['country:fr', 'country-group:ue', 'country-group:world'])
 
 country_subset.aggregate(
     'fr:drom', 'DROM',
-    [zone['_id'] for zone in retrieve_current_drom_departements(DB())],
+    lambda db: [zone['_id'] for zone in retrieve_current_drom_departements(db)],
     parents=['country:fr', 'country-group:ue', 'country-group:world'])
 
 country_subset.aggregate(
     'fr:dromcom', 'DROM-COM',
-    [zone['_id'] for zone in retrieve_current_drom_departements(DB())] +
-    [zone['_id'] for zone in retrieve_current_collectivites(DB())],
+    lambda db: (
+        [zone['_id'] for zone in retrieve_current_drom_departements(db)] +
+        [zone['_id'] for zone in retrieve_current_collectivites(db)]
+    ),
     parents=['country:fr', 'country-group:ue', 'country-group:world'])
