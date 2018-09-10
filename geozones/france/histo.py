@@ -144,8 +144,7 @@ def load_epcis(zones, root):
             'end': line['end_date']
         }
     } for line in _iter_over_csv(filename)]
-    result = zones.insert_many(data)
-    return len(result.inserted_ids)
+    return zones.safe_bulk_insert(data)
 
 
 def retrieve_current_departements(db):
