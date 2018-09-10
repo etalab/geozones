@@ -5,18 +5,19 @@ setup(
     version='1.0.0',
     packages=find_packages(),
     include_package_data=True,
+    zip_safe=False,
     install_requires=[
+        'Fiona==1.7.13',
+        'Flask==1.0.2',
+        'Shapely==1.6.4.post2',
         'click==6.7',
         'colorama==0.3.9',
-        'Fiona==1.7.8',
-        'msgpack-python==0.4.8',
-        'pymongo==3.5.0',
-        'Shapely==1.6b4',
-        'Flask==0.12.2',
+        'msgpack==0.5.6',
+        'pymongo==3.7.1',
         'requests==2.18.4',
     ],
     extras_require={
-        'i18n': ['transifex-client==0.12.4', 'Babel==2.4.0']
+        'i18n': ['transifex-client==0.13.4', 'Babel==2.6.0']
     },
     entry_points='''
         [console_scripts]
