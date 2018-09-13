@@ -12,8 +12,8 @@ def zone_to_feature(zone, keys=None):
         'name': unicodify(zone['name']),
         'wikipedia': unicodify(zone.get('wikipedia', '')) or None,
         'dbpedia': unicodify(zone.get('dbpedia', '')) or None,
-        'population': int(zone.get('population', 0)),
-        'area': int(zone.get('area', 0)),
+        'population': int(zone.get('population', 0)) or None,
+        'area': float(zone.get('area', 0)) or None,
         'flag': unicodify(zone.get('flag', '')) or None,
         'blazon': unicodify(zone.get('blazon', '')) or None,
         'keys': zone.get('keys', {}),
@@ -52,7 +52,7 @@ def stream_zones(zones):
     yield ''
     crs = fiona.crs.from_epsg(4326)
     yield ','.join((
-        '{{"type": "FeatureCollection"',
+        '{"type": "FeatureCollection"',
         '"crs": "{0}"'.format(crs),
         '"features": ['
     ))
@@ -60,7 +60,7 @@ def stream_zones(zones):
         data = json.dumps(zone_to_feature(zone))
         yield (',' + data) if i else data
 
-    yield ']}'
+    yield ']}\n'
 
 
 def dumps(zones, pretty=False):
