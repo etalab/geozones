@@ -150,6 +150,26 @@ def preload(ctx, drop):
 @click.pass_context
 @click.option('-o', '--only', default=None)
 @click.option('-e', '--exclude', default=None)
+def preprocess(ctx, only, exclude):
+    '''
+    Perform pre-processing.
+
+    Excluding `fetch_missing_data_from_dbpedia` with the `-e`
+    option will reduce the duration to 3 minutes.
+    '''
+    title(textwrap.dedent(preprocess.__doc__))
+    zones = ctx.obj['db']
+
+    for level in ctx.obj['levels']:
+        level.preprocess(DL_DIR, zones, only, exclude)
+
+    success('Pre-processing done')
+
+
+@cli.command()
+@click.pass_context
+@click.option('-o', '--only', default=None)
+@click.option('-e', '--exclude', default=None)
 def load(ctx, only, exclude):
     '''
     Load zones from a folder of zip files containing shapefiles
@@ -323,6 +343,7 @@ def full(ctx, drop, pretty, split, compress, serialization, keys):
     title(textwrap.dedent(full.__doc__))
     ctx.invoke(download)
     ctx.invoke(preload, drop=drop)
+    ctx.invoke(preprocess)
     ctx.invoke(load)
     ctx.invoke(aggregate)
     ctx.invoke(postprocess)

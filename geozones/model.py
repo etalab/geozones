@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import traceback
+from contextlib import contextmanager
 from os.path import join, basename
 from zipfile import ZipFile
 
@@ -23,13 +24,23 @@ class Level(object):
         self.parents = parents
         self.admin_level = admin_level
         self.children = []
+        self.preprocessors = []
         self.extractors = []
         self.postprocessors = []
         self.aggregates = []
         for parent in parents:
             parent.children.append(self)
 
-    def extractor(self, url, simplify=None):
+    def preprocessor(self, url=None):
+        '''
+        Register a non geospatial dataset and its processor.
+        '''
+        def wrapper(func):
+            self.preprocessors.append((url, func))
+            return func
+        return wrapper
+
+    def extractor(self, url, simplify=None, layer=None):
         '''
         Register a dataset and its extractor.
 
@@ -46,6 +57,7 @@ class Level(object):
         '''
         def wrapper(func):
             func.simplify = simplify
+            func.layer = layer
             self.extractors.append((url, func))
             return func
         return wrapper
@@ -93,15 +105,8 @@ class Level(object):
         success('Loaded {0} zones for level {1}', loaded, self.id)
         return loaded
 
-    def process_dataset(self, workdir, db, url, extractor):
-        '''
-        Extract territories from a given file for a given level
-        with a given extractor function.
-        '''
-        loaded = 0
-        filename = join(workdir, basename(url))
-
-        info('processing {0}', basename(filename))
+    @contextmanager
+    def load_shp_zip(self, filename, layer=None):
         # Identify the shapefile to avoid multiple file error on GDAL 2
         with ZipFile(filename) as z:
             candidates = [n for n in z.namelist() if n.endswith('.shp')]
@@ -122,9 +127,38 @@ class Level(object):
         with fiona.open('/{0}'.format(shp),
                         vfs='zip://{0}'.format(filename),
                         encoding='latin-1') as collection:
-            info('Extracting {0} elements from {1} => {2} ({3} {4})',
-                 len(collection), basename(filename), shp, collection.driver,
-                 to_string(collection.crs))
+            yield collection
+
+    @contextmanager
+    def load_geojzon(self, filename, layer=None):
+        with fiona.open(filename, layer=layer) as collection:
+            yield collection
+
+    def process_dataset(self, workdir, db, url, extractor):
+        '''
+        Extract territories from a given file for a given level
+        with a given extractor function.
+        '''
+        loaded = 0
+        filename = join(workdir, basename(url))
+        layer = extractor.layer
+
+        info('processing {0}', basename(filename))
+
+        if filename.endswith('.zip'):
+            loader = self.load_shp_zip
+        elif filename.endswith('.geojson'):
+            loader = self.load_geojzon
+
+        with loader(filename, layer=layer) as collection:
+            if layer:
+                info('Extracting {0} elements from {1} => {2} ({3} {4})',
+                     len(collection), basename(filename), layer, collection.driver,
+                     to_string(collection.crs))
+            else:
+                info('Extracting {0} elements from {1} => ({2} {3})',
+                     len(collection), basename(filename), collection.driver,
+                     to_string(collection.crs))
 
             for polygon in collection:
                 try:
@@ -230,6 +264,19 @@ class Level(object):
         }
         data.update(properties)
         return data
+
+    def preprocess(self, workdir, db, only=None, exclude=None):
+        '''Perform preprocessing.'''
+        for url, processor in self.preprocessors:
+            if only is not None and processor.__name__ != only:
+                continue
+            if exclude is not None and processor.__name__ == exclude:
+                continue
+            filepath = None
+            if url:
+                filename, _ = extract_meta_from_headers(url)
+                filepath = join(workdir, filename)
+            processor(db, filepath)
 
     def postprocess(self, workdir, db, only=None, exclude=None):
         '''Perform postprocessing.'''
