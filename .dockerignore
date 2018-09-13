@@ -1,0 +1,6 @@
+.git
+*.egg-info
+/data
+/dist*
+/downloads
+docker-compose.*

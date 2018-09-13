@@ -1,0 +1,15 @@
+version: '3'
+services:
+  geozones:
+    build: .
+    command: explore
+    environment:
+      GEOZONES_MONGO: db
+      GEOZONES_HOST: 0.0.0.0
+    volumes:
+      - .:/src
+      - ./work:/geozones
+    expose:
+      - 5000
+    ports:
+    - "5000:5000"

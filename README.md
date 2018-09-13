@@ -38,6 +38,8 @@ $ pip install -e .
 $ geozones -h
 ```
 
+There is a `docker-compose.yml` file providing a MongoDB instance. You can also run the entire tool into docker. See [Using docker](#using-docker) for more details.
+
 ## Model
 
 There are two main models:
@@ -231,6 +233,40 @@ The _msgpack_ format consumes more CPU on deserialization but does not take many
 - [OpenStreetMap french cantons boundaries](http://www.data.gouv.fr/fr/datasets/contours-osm-des-cantons-electoraux-departementaux-2015/)
 - [IGN/ISEE IRIS aggregated version](https://www.data.gouv.fr/fr/datasets/contour-des-iris-insee-tout-en-un/)
 - [French postal codes database](https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/)
+
+
+## Using in docker
+
+### Middleware only
+
+If you only want a MongoDB instance in docker and continue using a native Python environment, just use the provided `docker-compose.yml` as it is:
+
+```shell
+docker-compose up -d
+```
+
+Your MongoDB instance will be available on <localhost:27017>.
+
+### Complete stack
+
+If you want to run the entire application within docker, you can use a `docker-compose.override.yml` to add an extra docker instance for `geozones`.
+
+A sample `docker-compose.override.yml` is provided in `docker-compose.geozones.yml`.
+
+```shell
+cp docker-compose.{geozones,override}.yml
+docker-compose up -d
+```
+
+Your MongoDB instance will be available on <localhost:27017> and the explore interface <localhost:5000>.
+
+Then you can run any geozones command with `docker-compose run geozones <command>`.
+
+**Ex**:
+
+```shell
+docker-compose run geozones status
+```
 
 
 ## Possible improvements
