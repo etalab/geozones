@@ -182,6 +182,10 @@ class Level(object):
                     zone_id = zone.get('_id')
                     if not zone_id:
                         zone_id = ':'.join((self.id, zone['code']))
+                        if 'validity' in zone and zone['validity'].get('start'):
+                            start = zone['validity']['start']
+                            zone_id = '@'.join((zone_id, start))
+
                     zone.update(_id=zone_id, level=self.id)
                     db.find_one_and_replace(
                         {'_id': zone_id}, zone, upsert=True)
