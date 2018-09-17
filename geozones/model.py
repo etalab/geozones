@@ -40,7 +40,7 @@ class Level(object):
             return func
         return wrapper
 
-    def extractor(self, url, simplify=None, layer=None):
+    def extractor(self, url, simplify=None, **kwargs):
         '''
         Register a dataset and its extractor.
 
@@ -57,7 +57,7 @@ class Level(object):
         '''
         def wrapper(func):
             func.simplify = simplify
-            func.layer = layer
+            func.kwargs = kwargs
             self.extractors.append((url, func))
             return func
         return wrapper
@@ -106,7 +106,7 @@ class Level(object):
         return loaded
 
     @contextmanager
-    def load_shp_zip(self, filename, layer=None):
+    def load_shp_zip(self, filename, layer=None, encoding='latin-1', **kwargs):
         # Identify the shapefile to avoid multiple file error on GDAL 2
         with ZipFile(filename) as z:
             candidates = [n for n in z.namelist() if n.endswith('.shp')]
@@ -126,11 +126,11 @@ class Level(object):
 
         with fiona.open('/{0}'.format(shp),
                         vfs='zip://{0}'.format(filename),
-                        encoding='latin-1') as collection:
+                        encoding=encoding) as collection:
             yield collection
 
     @contextmanager
-    def load_geojzon(self, filename, layer=None):
+    def load_geojzon(self, filename, layer=None, **kwargs):
         with fiona.open(filename, layer=layer) as collection:
             yield collection
 
@@ -141,7 +141,7 @@ class Level(object):
         '''
         loaded = 0
         filename = join(workdir, basename(url))
-        layer = extractor.layer
+        layer = getattr(extractor, 'layer', None)
 
         info('processing {0}', basename(filename))
 
@@ -150,7 +150,7 @@ class Level(object):
         elif filename.endswith('.geojson'):
             loader = self.load_geojzon
 
-        with loader(filename, layer=layer) as collection:
+        with loader(filename, **extractor.kwargs) as collection:
             if layer:
                 info('Extracting {0} elements from {1} => {2} ({3} {4})',
                      len(collection), basename(filename), layer, collection.driver,
