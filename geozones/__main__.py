@@ -27,6 +27,7 @@ from . import geojson
 # Importing levels modules in order (international first)
 from . import international  # noqa
 from . import france  # noqa
+from . import luxembourg  # noqa
 
 DL_DIR = 'downloads'
 DIST_DIR = 'dist'
