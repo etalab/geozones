@@ -46,7 +46,7 @@ def extract_lu_canton(db, polygon):
     props = polygon['properties']
     code = props['ISO'].lower()
 
-    parents = set(['country:lu', 'country-group:ue', 'country-group:world'])
+    parents = {'country:lu', 'country-group:ue', 'country-group:world'}
 
     district = db.find_one({'level': 'lu:district', 'name': props['DISTRICT']})
 
@@ -76,7 +76,7 @@ def extract_lu_commune(db, polygon):
     props = polygon['properties']
     code = props['LAU2']
 
-    parents = set(['country:lu', 'country-group:ue', 'country-group:world'])
+    parents = {'country:lu', 'country-group:ue', 'country-group:world'}
 
     canton = db.find_one({'level': 'lu:canton', 'name': props['CANTON']})
 
