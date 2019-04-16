@@ -11,6 +11,7 @@ setup(
         'Flask==1.0.2',
         'Shapely==1.6.4.post2',
         'click==6.7',
+        'colorhash==1.0.2',
         'colorama==0.3.9',
         'msgpack==0.5.6',
         'pymongo==3.7.1',

@@ -1,7 +1,13 @@
 import fiona
 import json
 
+from colorhash import ColorHash
+
 from .tools import unicodify
+
+
+def colorize(zone):
+    return ColorHash(zone).hex
 
 
 def zone_to_feature(zone, keys=None):
@@ -21,6 +27,8 @@ def zone_to_feature(zone, keys=None):
         'parents': zone.get('parents', '') or None,
         'ancestors': zone.get('ancestors', '') or None,
         'successors': zone.get('successors', '') or None,
+        # Properties on added for display
+        '_color': colorize(zone),
     }
     if keys is not None:
         for unwanted_key in set(properties.keys()) - set(keys):

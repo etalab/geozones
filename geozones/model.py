@@ -84,9 +84,12 @@ class Level(object):
         '''Deep tree traversal.'''
         levels = [self]
         children = []
+        done = set()
         while len(levels) > 0:
             for level in levels:
-                yield level
+                if level.id not in done:
+                    yield level
+                    done.add(level.id)
                 children.extend(level.children)
             levels, children = children, []
 

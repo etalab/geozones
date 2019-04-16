@@ -65,3 +65,6 @@ target/
 
 # Local overrides
 docker-compose.override.yml
+
+# Build Assets
+node_modules/

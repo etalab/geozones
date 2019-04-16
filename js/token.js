@@ -1,0 +1,1 @@
+export default const token = 'pk.eyJ1Ijoibm9pcmJpemFycmUiLCJhIjoiY2o4b3IzNzdpMDZuMDMxcGNrZnIycHJ4aCJ9.NfhQARV5xOKTiinl4nb29g';
