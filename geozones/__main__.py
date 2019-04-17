@@ -81,20 +81,22 @@ def download(ctx):
         os.makedirs(DL_DIR)
 
     for url, filename in downloadable_urls(ctx):
-        info('Processing {0}'.format(url))
+        target = os.path.join(DL_DIR, filename)
+        if os.path.exists(target):
+            info('Skipping {0} because it already exists.'.format(filename))
+            continue
+
+        info('Processing {0}'.format(filename))
+        target_dir = os.path.dirname(target)
+
         try:
             _, size = extract_meta_from_headers(url)
         except urllib.error.HTTPError:
             warning('Error with URL {0}.'.format(url))
-        target = os.path.join(DL_DIR, filename)
-        target_dir = os.path.dirname(target)
-
-        if os.path.exists(target):
-            info('Skipping {0} because it already exists.'.format(filename))
-            continue
-        elif not os.path.exists(target_dir):
+        if not os.path.exists(target_dir):
             os.makedirs(target_dir)
-        info('Downloading {0} into {1}'.format(filename, target_dir))
+        
+        info('Downloading {0}'.format(url))
         with click.progressbar(length=size, width=0) as bar:
             def reporthook(blocknum, blocksize, totalsize):
                 read = blocknum * blocksize
