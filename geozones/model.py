@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import gzip
+import os
 import traceback
+
 from contextlib import contextmanager
 from os.path import join, basename
 from zipfile import ZipFile
@@ -31,11 +34,12 @@ class Level(object):
         for parent in parents:
             parent.children.append(self)
 
-    def preprocessor(self, url=None):
+    def preprocessor(self, url=None, **kwargs):
         '''
         Register a non geospatial dataset and its processor.
         '''
         def wrapper(func):
+            func.kwargs = kwargs
             self.preprocessors.append((url, func))
             return func
         return wrapper
@@ -62,19 +66,28 @@ class Level(object):
             return func
         return wrapper
 
-    def postprocessor(self, url=None):
+    def postprocessor(self, url=None, **kwargs):
         '''
         Register a non geospatial dataset and its processor.
         '''
         def wrapper(func):
+            func.kwargs = kwargs
             self.postprocessors.append((url, func))
             return func
         return wrapper
 
     @property
-    def urls(self):
-        '''The required datasets URLs list.'''
-        return [url for url, _ in self.extractors + self.postprocessors if url]
+    def downloads(self):
+        '''The required datasets URLs list with their target filename.'''
+        return [
+            (url, self.filename_for(url, fn))
+            for url, fn in self.preprocessors + self.extractors + self.postprocessors if url
+        ]
+
+    def filename_for(self, url, fn):
+        '''Compute the target download filename for a given URL'''
+        filename = fn.kwargs.get('filename', os.path.basename(url))
+        return os.path.join(self.id, filename)
 
     def aggregate(self, id, label, zones, **properties):
         '''Register a aggregate for this level.'''
@@ -137,13 +150,19 @@ class Level(object):
         with fiona.open(filename, layer=layer) as collection:
             yield collection
 
+    @contextmanager
+    def load_gzipped_geojzon(self, filename, layer=None, **kwargs):
+        with gzip.open(filename, 'rb') as gzipped:
+            with fiona.open(gzipped, layer=layer) as collection:
+                yield collection
+
     def process_dataset(self, workdir, db, url, extractor):
         '''
         Extract territories from a given file for a given level
         with a given extractor function.
         '''
         loaded = 0
-        filename = join(workdir, basename(url))
+        filename = join(workdir, self.filename_for(url, extractor))
         layer = getattr(extractor, 'layer', None)
 
         info('processing {0}', basename(filename))
@@ -152,6 +171,8 @@ class Level(object):
             loader = self.load_shp_zip
         elif filename.endswith('.geojson'):
             loader = self.load_geojzon
+        elif filename.endswith('.geojson.gz'):
+            loader = self.load_gzipped_geojzon
 
         with loader(filename, **extractor.kwargs) as collection:
             if layer:
@@ -281,8 +302,7 @@ class Level(object):
                 continue
             filepath = None
             if url:
-                filename, _ = extract_meta_from_headers(url)
-                filepath = join(workdir, filename)
+                filepath = join(workdir, self.filename_for(url, processor))
             processor(db, filepath)
 
     def postprocess(self, workdir, db, only=None, exclude=None):
@@ -294,8 +314,7 @@ class Level(object):
                 continue
             filepath = None
             if url:
-                filename, _ = extract_meta_from_headers(url)
-                filepath = join(workdir, filename)
+                filepath = join(workdir, self.filename_for(url, processor))
             processor(db, filepath)
 
 

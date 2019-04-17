@@ -4,7 +4,6 @@ import os
 import tarfile
 import textwrap
 import urllib
-from os.path import basename, join, exists
 from urllib.request import FancyURLopener
 
 import click
@@ -40,8 +39,9 @@ urlretrieve = FancyURLopener().retrieve
 
 
 def downloadable_urls(ctx):
-    urls = (level.urls for level in ctx.obj['levels'] if level.urls)
-    return set([url for lst in urls for url in lst] + GEOHISTO_URLS)
+    urls = (level.downloads for level in ctx.obj['levels'] if level.downloads)
+    # return set([url for lst in urls for url in lst] + GEOHISTO_URLS)
+    return set([url for lst in urls for url in lst])
 
 
 @click.group(chain=True, context_settings=CONTEXT_SETTINGS)
@@ -77,20 +77,24 @@ def download(ctx):
     Take about 15 minutes depending on your connexion bandwidth.
     '''
     title(textwrap.dedent(download.__doc__))
-    if not exists(DL_DIR):
+    if not os.path.exists(DL_DIR):
         os.makedirs(DL_DIR)
 
-    for url in downloadable_urls(ctx):
-        info('Dealing with {0}'.format(url))
+    for url, filename in downloadable_urls(ctx):
+        info('Processing {0}'.format(url))
         try:
-            filename, size = extract_meta_from_headers(url)
+            _, size = extract_meta_from_headers(url)
         except urllib.error.HTTPError:
             warning('Error with URL {0}.'.format(url))
-        target = join(DL_DIR, filename)
-        if exists(target):
+        target = os.path.join(DL_DIR, filename)
+        target_dir = os.path.dirname(target)
+
+        if os.path.exists(target):
             info('Skipping {0} because it already exists.'.format(filename))
             continue
-        info('Downloading {0} into {1}'.format(filename, DL_DIR))
+        elif not os.path.exists(target_dir):
+            os.makedirs(target_dir)
+        info('Downloading {0} into {1}'.format(filename, target_dir))
         with click.progressbar(length=size, width=0) as bar:
             def reporthook(blocknum, blocksize, totalsize):
                 read = blocknum * blocksize
@@ -250,7 +254,7 @@ def dist(ctx, pretty, split, compress, serialization, keys):
     geozones = ctx.obj['db']
     filenames = []
 
-    if not exists(DIST_DIR):
+    if not os.path.exists(DIST_DIR):
         os.makedirs(DIST_DIR)
 
     os.chdir(DIST_DIR)
@@ -308,11 +312,10 @@ def dist(ctx, pretty, split, compress, serialization, keys):
 
     if compress:
         filename = 'geozones-translations.tar.xz'
+        translations = os.path.join(ctx.obj['home'], 'geozones', 'translations')
         with ok('Compressing to {0}'.format(filename)):
             with tarfile.open(filename, 'w:xz') as txz:
-                txz.add(join(ctx.obj['home'], 'geozones', 'translations'), 'translations')
-
-        filename = 'geozones-split.tar.xz' if split else 'geozones.tar.xz'
+                txz.add(translations, 'translations')
 
         filename = 'geozones{split}-{serialization}.tar.xz'.format(
             split='-split' if split else '', serialization=serialization)
@@ -321,7 +324,7 @@ def dist(ctx, pretty, split, compress, serialization, keys):
                 for name in filenames:
                     txz.add(name)
                 # Add translations
-                txz.add(join(ctx.obj['home'], 'geozones', 'translations'), 'translations')
+                txz.add(translations, 'translations')
 
     os.chdir(ctx.obj['home'])
 
@@ -377,10 +380,7 @@ def status(ctx):
         click.echo('{id}: {label}'.format(**level.__dict__))
 
     section('downloads')
-    urls = (level.urls for level in ctx.obj['levels'] if level.urls)
-    urls = set([url for lst in urls for url in lst])
-    for url in urls:
-        filename = basename(url).strip()
+    for _, filename in downloadable_urls(ctx):
         click.echo('{0} ... '.format(filename), nl=False)
         if os.path.exists(os.path.join(DL_DIR, filename)):
             success('present')
