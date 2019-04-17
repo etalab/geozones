@@ -7,18 +7,18 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Fiona==1.7.13',
+        'Fiona==1.8.6',
         'Flask==1.0.2',
         'Shapely==1.6.4.post2',
-        'click==6.7',
+        'click==7.0',
+        'colorama==0.4.1',
         'colorhash==1.0.2',
-        'colorama==0.3.9',
-        'msgpack==0.5.6',
-        'pymongo==3.7.1',
-        'requests==2.18.4',
+        'msgpack==0.6.1',
+        'pymongo==3.8.0',
+        'requests==2.21.0',
     ],
     extras_require={
-        'i18n': ['transifex-client==0.13.4', 'Babel==2.6.0']
+        'i18n': ['Babel==2.6.0']
     },
     entry_points='''
         [console_scripts]
