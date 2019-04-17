@@ -380,7 +380,8 @@ def status(ctx):
         click.echo('{id}: {label}'.format(**level.__dict__))
 
     section('downloads')
-    for _, filename in downloadable_urls(ctx):
+    filenames = (f for _, f in downloadable_urls(ctx))
+    for filename in sorted(filenames):
         click.echo('{0} ... '.format(filename), nl=False)
         if os.path.exists(os.path.join(DL_DIR, filename)):
             success('present')

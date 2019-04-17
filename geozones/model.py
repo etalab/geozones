@@ -95,16 +95,10 @@ class Level(object):
 
     def traverse(self):
         '''Deep tree traversal.'''
-        levels = [self]
-        children = []
-        done = set()
-        while len(levels) > 0:
-            for level in levels:
-                if level.id not in done:
-                    yield level
-                    done.add(level.id)
-                children.extend(level.children)
-            levels, children = children, []
+        yield self
+        for child in self.children:
+            for level in child.traverse():
+                yield level
 
     def load(self, workdir, db, only=None, exclude=None):
         '''
