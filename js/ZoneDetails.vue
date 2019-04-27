@@ -3,7 +3,7 @@
   <h1 id="title">{{ zone.properties.name }}</h1>
   <dl>
     <dt>ID</dt>
-    <dd>{{ id }}</dd>
+    <dd>{{ zone.properties.id }}</dd>
 
     <dt>Name</dt>
     <dd>{{ zone.properties.name }}</dd>
@@ -42,13 +42,8 @@ import {mapGetters, mapActions} from 'vuex'
 
 export default {
   computed: {
-    id() {
-      return `${this.zone.properties.level}:${this.zone.properties.code}`
-    },
     keys() {
       return JSON.parse(this.zone.properties.keys)
-      // const keys = JSON.parse(this.zone.properties.keys)
-      // return Object.keys(keys).map(key => key + ': ' + keys[key])
     },
     parents() {
       return JSON.parse(this.zone.properties.parents)
