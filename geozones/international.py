@@ -106,7 +106,7 @@ country_group.aggregate('ue', _('European Union'), [
 
 
 @country.postprocessor()
-def add_ue_to_parents(db, filename):
+def add_ue_to_parents(db):
     info('Adding European Union to countries parents')
     result = db.update_many(
         {'level': country.id, 'code': {'$in': UE_COUNTRIES}},

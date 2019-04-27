@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
-import gzip
 import os
 import traceback
 
-from contextlib import contextmanager
 from os.path import join, basename
-from zipfile import ZipFile
 
-import fiona
 from fiona.crs import to_string
 from shapely.geometry import shape, MultiPolygon
 
-from .tools import warning, error, info, success, extract_meta_from_headers
+from .loaders import load
+from .tools import warning, error, info, success, progress
 from .tools import aggregate_multipolygons
 
 
@@ -115,41 +112,6 @@ class Level(object):
         success('Loaded {0} zones for level {1}', loaded, self.id)
         return loaded
 
-    @contextmanager
-    def load_shp_zip(self, filename, layer=None, encoding='latin-1', **kwargs):
-        # Identify the shapefile to avoid multiple file error on GDAL 2
-        with ZipFile(filename) as z:
-            candidates = [n for n in z.namelist() if n.endswith('.shp')]
-            if len(candidates) > 1:
-                # Try the exact name of the zip file for arrondissements
-                # given that the epci shapefile is present too...
-                for candidate in candidates:
-                    # Remove useless prefix and suffix.
-                    guessed_name = filename[len('downloads/'):-len('-shp.zip')]
-                    if guessed_name in candidate:
-                        candidates = [candidate]
-                        break
-            if len(candidates) != 1:
-                msg = 'Unable to find a unique shapefile into {0} {1}'
-                raise ValueError(msg.format(filename, candidates))
-            shp = candidates[0]
-
-        with fiona.open('/{0}'.format(shp),
-                        vfs='zip://{0}'.format(filename),
-                        encoding=encoding) as collection:
-            yield collection
-
-    @contextmanager
-    def load_geojzon(self, filename, layer=None, **kwargs):
-        with fiona.open(filename, layer=layer) as collection:
-            yield collection
-
-    @contextmanager
-    def load_gzipped_geojzon(self, filename, layer=None, **kwargs):
-        with gzip.open(filename, 'rb') as gzipped:
-            with fiona.open(gzipped, layer=layer) as collection:
-                yield collection
-
     def process_dataset(self, workdir, db, url, extractor):
         '''
         Extract territories from a given file for a given level
@@ -159,26 +121,19 @@ class Level(object):
         filename = join(workdir, self.filename_for(url, extractor))
         layer = getattr(extractor, 'layer', None)
 
-        info('processing {0}', basename(filename))
-
-        if filename.endswith('.zip'):
-            loader = self.load_shp_zip
-        elif filename.endswith('.geojson'):
-            loader = self.load_geojzon
-        elif filename.endswith('.geojson.gz'):
-            loader = self.load_gzipped_geojzon
-
-        with loader(filename, **extractor.kwargs) as collection:
+        with load(filename, **extractor.kwargs) as collection:
             if layer:
-                info('Extracting {0} elements from {1} => {2} ({3} {4})',
-                     len(collection), basename(filename), layer, collection.driver,
+                msg = '{0}/{1} ({2} {3})'.format(
+                     basename(filename), layer, collection.driver,
+                     to_string(collection.crs))
+            elif hasattr(collection, 'driver'):
+                msg = '{0} ({1} {2})'.format(
+                     basename(filename), collection.driver,
                      to_string(collection.crs))
             else:
-                info('Extracting {0} elements from {1} => ({2} {3})',
-                     len(collection), basename(filename), collection.driver,
-                     to_string(collection.crs))
+                msg = '{0}'.format(basename(filename))
 
-            for polygon in collection:
+            for polygon in progress(collection, msg):
                 try:
                     zone = extractor(db, polygon)
                     if not zone:
@@ -289,27 +244,26 @@ class Level(object):
 
     def preprocess(self, workdir, db, only=None, exclude=None):
         '''Perform preprocessing.'''
-        for url, processor in self.preprocessors:
-            if only is not None and processor.__name__ != only:
-                continue
-            if exclude is not None and processor.__name__ == exclude:
-                continue
-            filepath = None
-            if url:
-                filepath = join(workdir, self.filename_for(url, processor))
-            processor(db, filepath)
+        self._process(self.preprocessors, workdir, db, only=only, exclude=exclude)
 
     def postprocess(self, workdir, db, only=None, exclude=None):
         '''Perform postprocessing.'''
-        for url, processor in self.postprocessors:
+        self._process(self.postprocessors, workdir, db, only=only, exclude=exclude)
+
+    def _process(self, lst, workdir, db, only=None, exclude=None):
+        '''Perform postprocessing.'''
+        for url, processor in lst:
             if only is not None and processor.__name__ != only:
                 continue
             if exclude is not None and processor.__name__ == exclude:
                 continue
-            filepath = None
             if url:
-                filepath = join(workdir, self.filename_for(url, processor))
-            processor(db, filepath)
+                filename = self.filename_for(url, processor)
+                filename = os.path.join(workdir, filename)
+                with load(filename, **processor.kwargs) as collection:
+                    processor(db, collection)
+            else:
+                processor(db)
 
 
 # Force translatables string extraction

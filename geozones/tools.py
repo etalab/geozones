@@ -13,33 +13,52 @@ from shapely.geometry import shape, MultiPolygon
 from shapely.ops import cascaded_union
 
 
-def _secho(template=None, **skwargs):
-    def func(text, *args, **kwargs):
-        text = text.format(*args, **kwargs)
-        if template:
-            text = template.format(text)
-        click.secho(text, **skwargs)
+def _secho(prefix=None, **style):
+    def func(text='', *args, **kwargs):
+        text = text.strip().format(*args, **kwargs)
+        if '\n' in text:
+            text, _ = text.split('\n', 1)
+        text = click.style(text.strip(), **style)
+        if prefix:
+            text = ' '.join((prefix, text))
+        click.echo(text)
     return func
 
 
-title = _secho('>> {0}', fg='cyan', bold=True)
-section = _secho('> {0}', bold=True)
-info = _secho()
-success = _secho(fg='green')
-error = _secho(fg='red', bold=True)
-warning = _secho(fg='yellow')
+OK = click.style('✔', fg='green', bold=True)
+KO = click.style('✘', fg='red')
+WARNING = click.style('⚠️ ', fg='yellow')
+ARROW = click.style('➤', fg='blue')
+DOUBLE_ARROW = click.style('➤➤', fg='magenta')
+INFO = click.style('⦿', fg='cyan')
+HOURGLASS = click.style('⏳', fg='cyan')
+
+title = _secho(ARROW, fg='white', bold=True)
+section = _secho(DOUBLE_ARROW, fg='white', bold=True)
+info = _secho(INFO, bold=True)
+success = _secho(OK, fg='white', bold=True)
+error = _secho(KO, fg='red', bold=True)
+warning = _secho(WARNING, fg='yellow')
 
 
 @contextmanager
 def ok(text):
     try:
-        click.secho('{0} ...... '.format(text), nl=False)
+        text = click.style(text, bold=True)
+        click.secho('{0} {1} ...... '.format(INFO, text), nl=False)
         yield
-    except:
-        error('ko')
+    except Exception:
+        error()
         raise
     else:
-        success('ok')
+        success()
+
+
+def progress(collection, msg):
+    label = ' '.join((HOURGLASS, msg))
+    with click.progressbar(collection, label=label) as bar:
+        for item in bar:
+            yield item
 
 
 def unicodify(string):

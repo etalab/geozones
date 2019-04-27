@@ -1,6 +1,6 @@
 import click
 
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING
 from pymongo.collection import Collection
 from pymongo.errors import BulkWriteError
 
@@ -15,6 +15,13 @@ class DB(Collection):
         client = MongoClient(url)
         db = client[DB_NAME]
         super().__init__(db, 'geozones')
+
+    def initialize(self):
+        '''Initialize indexes'''
+        # If index already exists it will not be recreated
+        self.create_index([('level', ASCENDING), ('code', ASCENDING)])
+        self.create_index([('level', ASCENDING), ('keys', ASCENDING)])
+        self.create_index('parents')
 
     def safe_bulk_insert(self, data):
         '''
@@ -33,6 +40,11 @@ class DB(Collection):
             error(':\n\t'.join((str(e), messages)))
 
             return e._OperationFailure__details['nInserted']
+
+    # def fetch_current(self, level, code):
+    #     query = {'level': level, 'code': code}
+
+    #     return self.find_one(query)
 
     def fetch_zones(self, level, code=None, before=None, after=None):
         """

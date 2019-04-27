@@ -84,8 +84,13 @@ def extract_2014_french_region(db, polygon):
     http://www.data.gouv.fr/datasets/contours-des-regions-francaises-sur-openstreetmap/
     '''
     props = polygon['properties']
-    props['dbpedia'] = extract_uri(props.get('wikipedia'))
-    return db.fetch_zone(region.id, props['code_insee'], '2015-12-31')
+    zone = db.fetch_zone(region.id, props['code_insee'], before='2014-12-31', after='2014-01-01')
+    if not zone:
+        return
+    zone['keys']['nuts2'] = props['nuts2']
+    zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
+    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    return zone
 
 
 @region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.01)  # NOQA
@@ -96,8 +101,104 @@ def extract_2016_french_region(db, polygon):
     https://www.data.gouv.fr/fr/datasets/projet-de-redecoupages-des-regions/
     '''
     props = polygon['properties']
-    props['dbpedia'] = extract_uri(props.get('wikipedia'))
-    return db.fetch_zone(region.id, props['code_insee'], '9999-12-31')
+    zone = db.fetch_zone(region.id, props['code_insee'], before='2016-12-31', after='2016-01-01')
+    if not zone:
+        return
+    zone['keys']['nuts2'] = props['nuts2']
+    zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
+    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    return zone
+
+
+@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20170102-shp.zip', simplify=0.01)  # NOQA
+def extract_2017_french_region(db, polygon):
+    '''
+    Extract new french region informations from a MultiPolygon.
+    Based on data from:
+    https://www.data.gouv.fr/fr/datasets/projet-de-redecoupages-des-regions/
+    '''
+    props = polygon['properties']
+    zone = db.fetch_zone(region.id, props['insee'], before='2017-12-31', after='2017-01-01')
+    if not zone:
+        return
+    zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
+    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['wikidata'] = convert_from(props['wikidata'], 'latin-1')
+    return zone
+
+
+@region.extractor('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2018/geojson/regions-100m.geojson.gz',
+                  filename='regions-100m-2018.geojson.gz')
+def extract_2018_french_regions(db, polygon):
+    props = polygon['properties']
+    return {
+        'code': props['code'],
+        'name': props['nom'],
+        'parents': ['country:fr', 'country-group:ue', 'country-group:world'],
+    }
+
+
+@region.extractor('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2019/geojson/regions-100m.geojson.gz',
+                  filename='regions-100m-2019.geojson.gz')
+def extract_2019_french_regions(db, polygon):
+    props = polygon['properties']
+    return {
+        'code': props['code'],
+        'name': props['nom'],
+        'parents': ['country:fr', 'country-group:ue', 'country-group:world'],
+    }
+
+
+@commune.extractor('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2019/geojson/communes-100m.geojson.gz',
+                   filename='communes-100m-2019.geojson.gz')
+def extract_2019_french_commune(db, polygon):
+    '''
+    Extract a french town informations from a MultiPolygon.
+    Based on data from:
+    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    '''
+    props = polygon['properties']
+    parents = ['country:fr', 'country-group:ue', 'country-group:world']
+    # region = retrieve_current_collectivite
+    # departement = retrieve_current_departement(db, props['departement'])
+    # if departement:
+    #     parents.append(departement['_id'])
+    # wikipedia = convert_from(props['wikipedia'], 'latin-1')
+    return {
+        'code': props['code'],
+        'name': props['nom'],
+        'parents': parents,
+        # 'keys': {
+        #     'ref': code,
+        #     'jorf': props['jorf']
+        # }
+    }
+
+
+@commune.extractor('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2018/geojson/communes-100m.geojson.gz',
+                   filename='communes-100m-2018.geojson.gz')
+def extract_2018_french_commune(db, polygon):
+    '''
+    Extract a french town informations from a MultiPolygon.
+    Based on data from:
+    http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
+    '''
+    props = polygon['properties']
+    parents = ['country:fr', 'country-group:ue', 'country-group:world']
+    # region = retrieve_current_collectivite
+    # departement = retrieve_current_departement(db, props['departement'])
+    # if departement:
+    #     parents.append(departement['_id'])
+    # wikipedia = convert_from(props['wikipedia'], 'latin-1')
+    return {
+        'code': props['code'],
+        'name': props['nom'],
+        'parents': parents,
+        # 'keys': {
+        #     'ref': code,
+        #     'jorf': props['jorf']
+        # }
+    }
 
 
 @commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20170111-shp.zip', simplify=0.0005)  # NOQA
@@ -176,7 +277,8 @@ def extract_french_arrondissements(db, polygon):
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    zone = db.fetch_zone(commune.id, props['insee'], '9999-12-31')
+    zone = db.fetch_zone(commune.id, props['insee'])
+    print('zone', zone)
     zone['wikipedia'] = props['wikipedia']
     zone['dbpedia'] = extract_uri(zone['wikipedia'])
     zone['area'] = int(props['surf_ha'])

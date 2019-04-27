@@ -12,7 +12,7 @@ import msgpack
 
 from .db import DB
 from .tools import (
-    info, success, title, ok, error, section, warning,
+    info, success, title, ok, error, section, warning, _secho,
     extract_meta_from_headers
 )
 from .model import root
@@ -45,11 +45,13 @@ def downloadable_urls(ctx):
 
 
 @click.group(chain=True, context_settings=CONTEXT_SETTINGS)
+@click.option('-d', '--drop', is_flag=True)
 @click.option('-l', '--level', multiple=True, help='Limits to given levels')
+@click.option('-e', '--exclude', multiple=True, help='Exclude some levels')
 @click.option('-m', '--mongo', help='MongoDB database', default='localhost')
 @click.option('-H', '--home', help='Specify GeoZones working home')
 @click.pass_context
-def cli(ctx, level, mongo, home):
+def cli(ctx, drop, level, exclude, mongo, home):
     ctx.obj = {}
     if home:
         os.chdir(home)
@@ -59,13 +61,20 @@ def cli(ctx, level, mongo, home):
 
     levels = []
     for l in root.traverse():
-        should_process = not level or l.id in level
+        should_process = (not level or l.id in level) and l.id not in exclude
         if should_process and l not in levels:
             levels.append(l)
 
     ctx.obj['levels'] = levels
 
-    ctx.obj['db'] = DB(mongo)
+    db = ctx.obj['db'] = DB(mongo)
+
+    if drop:
+        with ok('Droping existing collection'):
+            db.drop()
+
+    with ok('Initializing collection'):
+        db.initialize()
 
 
 @cli.command()
@@ -95,7 +104,7 @@ def download(ctx):
             warning('Error with URL {0}.'.format(url))
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
-        
+
         info('Downloading {0}'.format(url))
         with click.progressbar(length=size, width=0) as bar:
             def reporthook(blocknum, blocksize, totalsize):
@@ -111,7 +120,7 @@ def download(ctx):
 @click.pass_context
 def sourceslist(ctx):
     '''Generate a datasets donwload list for external usage'''
-    print('\n'.join(downloadable_urls(ctx)))
+    print('\n'.join(l for l, _ in downloadable_urls(ctx)))
 
 
 @cli.command()
@@ -191,7 +200,7 @@ def load(ctx, only, exclude):
     total = 0
 
     for level in ctx.obj['levels']:
-        info('Processing level "{0}"'.format(level.id))
+        section('Processing level "{0}"'.format(level.id))
         total += level.load(DL_DIR, zones, only, exclude)
 
     success('Done: Loaded {0} zones'.format(total))
@@ -348,7 +357,7 @@ def full(ctx, drop, pretty, split, compress, serialization, keys):
     '''
     title(textwrap.dedent(full.__doc__))
     ctx.invoke(download)
-    ctx.invoke(preload, drop=drop)
+    # ctx.invoke(preload, drop=drop)
     ctx.invoke(preprocess)
     ctx.invoke(load)
     ctx.invoke(aggregate)
@@ -388,7 +397,7 @@ def status(ctx):
         if os.path.exists(os.path.join(DL_DIR, filename)):
             success('present')
         else:
-            error('absent')
+            error('missing')
 
     section('coverage')
     zones = ctx.obj['db']
@@ -409,11 +418,11 @@ def status(ctx):
     def display_prop(name, count, total):
         click.echo('\t{0}: '.format(name), nl=False)
         if count == 0:
-            func = error
+            func = _secho(fg='red')
         elif count == total:
-            func = success
+            func = _secho(fg='green')
         else:
-            func = warning
+            func = _secho(fg='yellow')
         func('{0}/{1}'.format(count, total))
 
     counts = dict((p, countprop(p)) for p in properties)

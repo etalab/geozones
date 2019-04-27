@@ -7,7 +7,7 @@ from pymongo import DESCENDING
 
 from ..dbpedia import execute_sparql_query
 from ..dbpedia import RDF_PREFIXES, SPARQL_PREFIXES, SPARQL_BY_URI
-from ..tools import info, success, warning, iter_over_cog
+from ..tools import info, success, warning, iter_over_cog, progress
 from ..tools import aggregate_multipolygons, geom_to_multipolygon, chunker
 
 from .histo import (
@@ -26,57 +26,60 @@ WARNING:
 
 @commune.postprocessor(
     'http://datanova.legroupe.laposte.fr/explore/dataset/laposte_hexasmal/download/?format=csv&timezone=Europe/Berlin&use_labels_for_header=true',
-    filename='laposte-hexasmal.csv'
+    filename='laposte-hexasmal.csv', delimiter=';', encoding='cp1252'
 )
-def process_postal_codes(db, filename):
+def process_postal_codes(db, data):
     '''
     Extract postal codes from:
     https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/
     '''
-    info('Processing french postal codes')
     processed = 0
-    with open(filename, encoding='cp1252') as csvfile:
-        reader = csv.reader(csvfile, delimiter=';')
-        # skip header
-        next(reader, None)
-        for insee, _1, postal, _2, _3, _4 in reader:
-            ops = {'$addToSet': {'keys.postal': postal}}
-            if db.find_one_and_update({
-                'level': commune.id, 'code': insee
-            }, ops):
-                processed += 1
+    for row in progress(data, 'Processing french postal codes'):
+        match = db.find_one_and_update(
+            {'level': commune.id, 'code': row['Code_commune_INSEE']},
+            {'$addToSet': {'keys.postal': row['Code_postal']}}
+        )
+        if match:
+            processed += 1
     success('Processed {0} french postal codes', processed)
 
 
-@commune.postprocessor('https://www.insee.fr/fr/statistiques/fichier/2666684/france2017-txt.zip')  # NOQA
-def process_insee_cog(db, filename):
-    '''Use informations from INSEE COG to attach parents.
-    https://www.insee.fr/fr/information/2666684
-    '''
-    info('Processing INSEE COG')
-    processed = 0
-    districts = {}
-    for row in iter_over_cog(filename, 'France2017.txt'):
-        region_code = row['REG']
-        departement_code = row['DEP']
-        district_code = row['AR']
-        region = retrieve_current_region(db, region_code)
-        departement = retrieve_current_departement(db, departement_code)
+@commune.postprocessor('https://github.com/etalab/decoupage-administratif/releases/download/v0.5.0/communes.json')
+def attach_current_french_communes_parents(db, data):
+    # info('Attaching parents to french communes')
+    for row in progress(data, 'Attaching parents to french communes'):
+        print(row)
 
-        if district_code:
-            district_code = ''.join((departement_code, district_code))
-            district_id = 'fr:arrondissement:{0}'.format(district_code)
-            if district_id not in districts and region and departement:
-                districts[district_id] = [region['_id'], departement['_id']]
 
-    for district_id, parents in districts.items():
-        if db.find_one_and_update(
-                {'_id': district_id},
-                {'$addToSet': {
-                    'parents': {'$each': parents},
-                }}):
-            processed += 1
-    success('Attached {0} french districts to their parents', processed)
+# @commune.postprocessor('https://www.insee.fr/fr/statistiques/fichier/2666684/france2017-txt.zip')  # NOQA
+# def process_insee_cog(db, filename):
+#     '''Use informations from INSEE COG to attach parents.
+#     https://www.insee.fr/fr/information/2666684
+#     '''
+#     info('Processing INSEE COG')
+#     processed = 0
+#     districts = {}
+#     for row in iter_over_cog(filename, 'France2017.txt'):
+#         region_code = row['REG']
+#         departement_code = row['DEP']
+#         district_code = row['AR']
+#         region = retrieve_current_region(db, region_code)
+#         departement = retrieve_current_departement(db, departement_code)
+
+#         if district_code:
+#             district_code = ''.join((departement_code, district_code))
+#             district_id = 'fr:arrondissement:{0}'.format(district_code)
+#             if district_id not in districts and region and departement:
+#                 districts[district_id] = [region['_id'], departement['_id']]
+
+#     for district_id, parents in districts.items():
+#         if db.find_one_and_update(
+#                 {'_id': district_id},
+#                 {'$addToSet': {
+#                     'parents': {'$each': parents},
+#                 }}):
+#             processed += 1
+#     success('Attached {0} french districts to their parents', processed)
 
 
 @commune.postprocessor()
@@ -147,7 +150,7 @@ def group_by_uri(results):
 
 
 @commune.postprocessor()
-def fetch_missing_data_from_dbpedia(db, filename):
+def fetch_missing_data_from_dbpedia(db):
     info('Fetching DBPedia data')
     # processed = 0
     count = Counter()
@@ -223,7 +226,7 @@ def fetch_missing_data_from_dbpedia(db, filename):
 
 
 @commune.postprocessor()
-def compute_commune_with_districts_population(db, filename):
+def compute_commune_with_districts_population(db):
     info('Computing Paris town districts population')
     districts = db.find({'_id': {'$in': PARIS_DISTRICTS}})
     population = sum(district.get('population', 0) for district in districts)
@@ -251,7 +254,7 @@ def compute_commune_with_districts_population(db, filename):
 
 # Need to be the last processed
 @commune.postprocessor()
-def attach_counties_to_subcountries(db, filename):
+def attach_counties_to_subcountries(db):
     info('Attaching French Metropolitan counties')
     ids = [departement['_id']
            for departement in retrieve_current_metro_departements(db)]
@@ -272,7 +275,7 @@ def attach_counties_to_subcountries(db, filename):
 
 
 @canton.postprocessor()
-def attach_canton_parents(db, filename):
+def attach_canton_parents(db):
     info('Attaching French Canton to their parents')
     canton_processed = 0
     for zone in db.find({'level': canton.id}):
@@ -297,7 +300,7 @@ def attach_canton_parents(db, filename):
 
 
 @iris.postprocessor()
-def attach_and_clean_iris(db, filename):
+def attach_and_clean_iris(db):
     info('Attaching French IRIS to their region')
     processed = 0
     for zone in db.find({'level': iris.id}):
@@ -326,7 +329,7 @@ def attach_and_clean_iris(db, filename):
 
 
 @arrondissement.postprocessor()
-def compute_district_population(db, filename):
+def compute_district_population(db):
     info('Computing french district population by aggregation')
     processed = 0
     pipeline = [
@@ -345,7 +348,7 @@ def compute_district_population(db, filename):
 
 
 @departement.postprocessor()
-def compute_departement_area_and_population(db, filename):
+def compute_departement_area_and_population(db):
     info('Computing french counties areas and population by aggregation')
     processed = 0
     pipeline = [
@@ -370,7 +373,7 @@ def compute_departement_area_and_population(db, filename):
 
 
 @departement.postprocessor()  # Needs departement population to be computed
-def compute_region_population(db, filename):
+def compute_region_population(db):
     info('Computing french regions population by aggregation')
     processed = 0
     pipeline = [
@@ -388,8 +391,8 @@ def compute_region_population(db, filename):
     success('Computed population for {0} french regions', processed)
 
 
-@commune.postprocessor()  # NOQA
-def attach_epci(db, filename):
+@commune.postprocessor()
+def attach_epci(db):
     '''
     Attach EPCI towns to their EPCI from
     and build EPCI geometry when available
