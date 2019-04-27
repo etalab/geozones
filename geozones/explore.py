@@ -3,7 +3,8 @@ from flask import Flask, render_template, Response, json, current_app
 from geozones import geojson
 from geozones.model import root
 
-TIMED_LEVELS = ('fr:region', 'fr:epci', 'fr:departement', 'fr:commune')
+TIMED_LEVELS = []
+# TIMED_LEVELS = ('fr:region', 'fr:epci', 'fr:departement', 'fr:commune')
 
 app = Flask(__name__)
 

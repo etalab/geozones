@@ -27,7 +27,8 @@ def zone_to_feature(zone, keys=None):
         'parents': zone.get('parents', '') or None,
         'ancestors': zone.get('ancestors', '') or None,
         'successors': zone.get('successors', '') or None,
-        # Properties on added for display
+        # Properties on added for display and workaroung mapgl bugs
+        '_id': zone['_id'],
         '_color': colorize(zone),
     }
     if keys is not None:
