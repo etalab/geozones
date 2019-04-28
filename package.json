@@ -11,7 +11,7 @@
     "type": "git",
     "url": "git+https://github.com/etalab/geozones.git"
   },
-  "author": "Axel Haustant <noirbizarre+npm@gmail.com> (https://noirbizarre.info)",
+  "author": "Axel Haustant <noirbizarre+npm@gmail.com>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/etalab/geozones/issues"
@@ -20,7 +20,12 @@
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
     "@deck.gl/mapbox": "^7.0.3",
+    "@fortawesome/fontawesome-svg-core": "^1.2.17",
+    "@fortawesome/free-brands-svg-icons": "^5.8.1",
+    "@fortawesome/free-solid-svg-icons": "^5.8.1",
+    "@fortawesome/vue-fontawesome": "^0.1.6",
     "@turf/bbox": "^6.0.1",
+    "buefy": "^0.7.5",
     "deck.gl": "^7.0.3",
     "mapbox-gl": "^0.54.0",
     "mapbox-gl-vue": "^1.9.0",

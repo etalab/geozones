@@ -7,7 +7,7 @@ from .tools import unicodify
 
 
 def colorize(zone):
-    return ColorHash(zone).hex
+    return ColorHash(zone['_id']).hex
 
 
 def zone_to_feature(zone, keys=None):

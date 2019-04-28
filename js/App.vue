@@ -1,10 +1,8 @@
 <template>
 <main>
+  <navbar></navbar>
   <world-map></world-map>
-  <aside id="layer-picker" class="panel">
-    <layer-picker></layer-picker>
-  </aside>
-  <aside id="zone-details" class="panel" v-if="zone">
+  <aside id="zone-details" v-if="zone">
     <zone-details></zone-details>
   </aside>
 </main>
@@ -12,13 +10,13 @@
 
 <script>
 import {mapGetters, mapActions} from 'vuex'
-import LayerPicker from './LayerPicker.vue'
+import Navbar from './Navbar.vue'
 import WorldMap from './WorldMap.vue'
 import ZoneDetails from './ZoneDetails.vue'
 
 
 export default {
-  components: {WorldMap, LayerPicker, ZoneDetails},
+  components: {WorldMap, ZoneDetails, Navbar},
   created() {
     this.fetchLevels()
   },
@@ -27,33 +25,26 @@ export default {
   },
   methods: {
     ...mapActions(['fetchLevels'])
-  }
+  },
 }
 </script>
 
 <style scoped lang="postcss">
+$navbar-height: 3.25rem;
+
 main {
-  height: 100%;
+  height: 100vh;
+
+  nav.navbar {
+    height: $navbar-height;
+  }
 }
 
 #zone-details {
   position: absolute;
   z-index: 1;
-  top: 10px;
+  top: calc($navbar-height + 10px);
   right: 10px;
-}
-
-#layer-picker {
-  position: absolute;
-  z-index: 1;
-  top: 10px;
-  left: 10px;
-}
-
-.panel {
-  padding: 10px;
-  background-color: white;
-  border-radius: 2px;
 }
 
 </style>

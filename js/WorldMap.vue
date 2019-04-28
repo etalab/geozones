@@ -21,7 +21,7 @@ export default {
     map() {
       return this.$refs.map._map
     },
-    ...mapGetters(['mapConfig', 'level', 'zone'])
+    ...mapGetters(['mapConfig', 'level', 'levelUrl', 'zone'])
   },
   methods: {
     onZoneClick(evt) {
@@ -56,14 +56,11 @@ export default {
         console.log('old level', oldLevel, oldLevel.id)
         this.map.setLayoutProperty(oldLevel.id, 'visibility', 'none')
       }
-      
-      console.log('getSource', level.id, this.map.getSource(level.id))
+
       if (this.map.getSource(level.id)) {
-        console.log('setData', url)
         this.map.getSource(level.id).setData(url)
         this.map.setLayoutProperty(level.id, 'visibility', 'visible')
       } else {
-        console.log('addSource', url)
         this.map.addSource(level.id, {type: 'geojson', data: url})
         this.map.addLayer({
           id: level.id,

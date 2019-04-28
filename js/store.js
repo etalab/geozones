@@ -20,14 +20,22 @@ const state = {
     },
     levels: [],
     level: undefined,
+    geojson: undefined,
+    date: new Date(),
     zone: undefined,
+    homepage: 'https://github.com/etalab/geozones',
 }
 
 const getters = {
   loading: state => state.loading,
   mapConfig: state => state.mapConfig,
   level: state => state.level,
+  levelUrl: state => `/levels/${state.level.id}`,
+  date: state => state.date,
   levels: state => state.levels,
+  homepage: state => state.homepage,
+  github: state => state.homepage,
+  geojson: state => state.geojson,
   zone: state => state.zone,
 //   currentDate: state => new Date(state.run.date).toLocaleDateString(),
 //   currentQuery: state => state.query.query,
@@ -51,6 +59,12 @@ const mutations = {
     level(state, value) {
         state.level = value
     },
+    geojson(state, value) {
+      state.geojson = value
+    },
+    date(state, date) {
+      state.date = date
+    },
     zone(state, value) {
         state.zone = value
     },
@@ -68,9 +82,18 @@ const actions = {
         }
     },
     async setLevel({ commit, dispatch }, level) {
-        commit('level', level)
         console.log('setLevel', level)
+        commit('loading', true)
+        commit('level', level)
+        const response = await getData(`levels/${level.id}`)
+        commit('geojson', response)
+        commit('loading', false)
         // await dispatch('getToc')
+    },
+    async setDate({ commit, dispatch }, date) {
+      commit('date', date)
+      console.log('setDate', date)
+      // await dispatch('getToc')
     },
     async setZone({ commit, dispatch }, zone) {
         console.log('setZone', zone)
