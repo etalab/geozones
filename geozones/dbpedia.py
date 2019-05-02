@@ -26,8 +26,8 @@ SELECT ?uri ?property ?value WHERE {{
 }}
 '''
 
-RE_WIKIPEDIA = re.compile(
-    r'https?://(?P<namespace>\w+)?\.?wikipedia\.org/wiki/(?P<path>.+)$')
+RE_WIKIPEDIA = re.compile(r'https?://(?P<namespace>\w+)?\.?wikipedia\.org/wiki/(?P<path>.+)$')
+RE_DBPEDIA = re.compile(r'https?://(?P<namespace>\w+)?\.?dbpedia\.org/resource/(?P<path>.+)$')
 
 SPARQL_SERVER = 'http://dbpedia.inria.fr/sparql'
 
@@ -40,7 +40,7 @@ def extract_uri(uri):
     # Special wrong case: `fr:fr:Communauté_de_communes_d'Altkirch`
     if uri.startswith('fr:fr:'):
         namespace, _, path = uri.split(':')
-    elif ':' in uri and not uri.startswith('http'):
+    elif ':' in uri and not uri.startswith('http:') and not uri.startswith('https:'):
         namespace, path = uri.split(':')
     elif RE_WIKIPEDIA.match(uri):
         m = RE_WIKIPEDIA.match(uri)
@@ -54,6 +54,20 @@ def extract_uri(uri):
     else:
         base_url = 'http://dbpedia.org'
     return '{base_url}/resource/{path}'.format(base_url=base_url, path=path)
+
+
+def dbpedia_to_wikipedia(uri):
+    '''Get the wikipedia identifier from a DBPedia URI'''
+    if not uri:
+        return
+    m = RE_DBPEDIA.match(uri)
+    if not m:
+        return
+    namespace, path = m.group('namespace', 'path')
+    if namespace:
+        return ':'.join((namespace, path))
+    else:
+        return path
 
 
 def execute_sparql_query(query, graph='http://fr.dbpedia.org'):
