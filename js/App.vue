@@ -2,7 +2,7 @@
 <main>
   <navbar></navbar>
   <world-map></world-map>
-  <aside id="zone-details" v-if="zone">
+  <aside class="right-sidebar" v-if="zone">
     <zone-details></zone-details>
   </aside>
 </main>
@@ -40,11 +40,11 @@ main {
   }
 }
 
-#zone-details {
+.right-sidebar {
   position: absolute;
   z-index: 1;
   top: calc($navbar-height + 10px);
   right: 10px;
+  min-width: 350px; /* TODO: Make it responsive */ 
 }
-
 </style>

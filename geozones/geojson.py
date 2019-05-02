@@ -38,7 +38,7 @@ def zone_to_feature(zone, keys=None):
         'id': zone['_id'],
         'type': 'Feature',
         'geometry': zone.get('geom'),
-        'properties': properties
+        'properties': {k: v for k, v in properties.items() if v}
     }
     if keys is not None and 'geometry' not in keys:
         del feature['geometry']

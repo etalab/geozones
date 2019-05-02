@@ -1,16 +1,17 @@
-from flask import Flask, render_template, Response, json, current_app
+from flask import Flask, render_template, Response, json, current_app, abort
 
 from geozones import geojson
 from geozones.model import root
-
-TIMED_LEVELS = []
-# TIMED_LEVELS = ('fr:region', 'fr:epci', 'fr:departement', 'fr:commune')
 
 app = Flask(__name__)
 
 
 def jsonify(data):
     return Response(json.dumps(data), mimetype='application/json')
+
+
+def stream(data):
+    return Response(geojson.stream_zones(data), content_type='application/json')
 
 
 @app.route('/')
@@ -38,8 +39,24 @@ def level_api(level_id):
         data = db.fetch_zones(level_id, after='2017-01-01')
     else:
         data = db.find({'level': level_id})
-    return Response(geojson.stream_zones(data),
-                    content_type='application/json')
+    return stream(data)
+
+
+@app.route('/levels/<string:level>@<string:at>')
+def level_at_api(level, at):
+    db = current_app.db
+    data = db.level(level, at)
+    return stream(data)
+
+
+@app.route('/zones/<string:id>')
+def zone_api(id):
+    db = current_app.db
+    zone = db.find_one({'_id': id})
+    if zone:
+        return jsonify(geojson.zone_to_feature(zone))
+    else:
+        abort(404)
 
 
 def run(db, host='localhost', port=5000, debug=False):

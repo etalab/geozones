@@ -2,6 +2,7 @@
 <mapbox ref="map"
   :access-token="mapConfig.token"
   :map-options="mapConfig"
+  @map-load="mapLoaded"
   >
 </mapbox>
 </template>
@@ -10,6 +11,7 @@
 import {mapGetters, mapActions} from 'vuex'
 import bbox from '@turf/bbox';
 import Mapbox from 'mapbox-gl-vue'
+import {isodate} from './helpers'
 
 
 export default {
@@ -21,72 +23,73 @@ export default {
     map() {
       return this.$refs.map._map
     },
-    ...mapGetters(['mapConfig', 'level', 'levelUrl', 'zone'])
+    ...mapGetters(['mapConfig', 'level', 'zone', 'date'])
   },
   methods: {
-    onZoneClick(evt) {
-      this.setZone(evt.features[0])
+    mapLoaded(map) {
+      map.addSource('zone', {type: 'geojson', data: {type: 'Feature'}})
+      map.addLayer({
+        id: 'zone',
+        type: 'fill',
+        source: 'zone',
+        paint: {
+          "fill-opacity": 0.6,
+          'fill-color': {
+            type: 'identity',
+            property: '_color',
+          },
+        }
+      })
+      map.addLayer({
+        'id': 'zone-outline',
+        'type': 'line',
+        'source': 'zone',
+        'paint': {
+          'line-color': 'rgba(255, 0, 0, 1)',
+          'line-width': 3
+        }
+      })
     },
-    onMouseEnter(evt) {
-      this.map.getCanvas().style.cursor = 'pointer'
-      this.hover = evt.features[0];
-    },
-    onMouseLeave(evt) {
-      this.map.getCanvas().style.cursor = ''
-      if (this.hover) {
-        this.hover = undefined
-      }
-    },
-    ...mapActions(['setZone'])
-  },
-  watch: {
-    // Not working while mapbox-gl does not support string identifiers
-    // hover(feature, old) {
-    //   if (old) {
-    //     this.map.setFeatureState(old, { hover: false})
-    //   }
-    //   if (feature) {
-    //     this.map.setFeatureState(feature, { hover: true})
-    //   }
-    // },
-    level(level, oldLevel) {
-      this.hover = undefined
-      const url = `/levels/${level.id}`
-      if (oldLevel) {
-        console.log('old level', oldLevel, oldLevel.id)
-        this.map.setLayoutProperty(oldLevel.id, 'visibility', 'none')
-      }
+    loadLevel(levelId, at) {
+      const isoAt = isodate(at)
+      const url = `/levels/${levelId}@${isoAt}`
 
-      if (this.map.getSource(level.id)) {
-        this.map.getSource(level.id).setData(url)
-        this.map.setLayoutProperty(level.id, 'visibility', 'visible')
+      if (this.map.getSource(levelId)) {
+        this.map.getSource(levelId).setData(url)
+        this.map.setLayoutProperty(levelId, 'visibility', 'visible')
       } else {
-        this.map.addSource(level.id, {type: 'geojson', data: url})
+        this.map.addSource(levelId, {type: 'geojson', data: url})
         this.map.addLayer({
-          id: level.id,
+          id: levelId,
           type: 'fill',
-          source: level.id,
+          source: levelId,
           paint: {
             "fill-opacity": 0.4,
-            // Not possible while string identifier are not supported by mapbox-gl
-            // 'fill-opacity': ['case',
-            //   ['boolean', ['feature-state', 'hover'], false],
-            //   1,
-            //   0.5
-            // ],
             'fill-color': {
               type: 'identity',
               property: '_color',
             },
             'fill-outline-color': 'rgba(200, 100, 240, 1)'
           },
-        });
-        this.map.on('click', level.id, this.onZoneClick)
-        this.map.on('mouseenter', level.id, this.onMouseEnter)
-        this.map.on('mouseleave', level.id, this.onMouseLeave)
+        }, 'zone');
+        this.map.on('click', levelId, this.onZoneClick)
       }
     },
+    onZoneClick(evt) {
+      this.setZone(evt.features[0])
+    },
+    ...mapActions(['setZone'])
+  },
+  watch: {
+    date(date) {
+      this.loadLevel(this.level.id, date)
+    },
+    level(level, oldLevel) {
+      if (oldLevel) this.map.setLayoutProperty(oldLevel.id, 'visibility', 'none')
+      this.loadLevel(level.id, this.date)
+    },
     zone(zone) {
+      this.map.getSource('zone').setData(zone)
       this.map.fitBounds(bbox(zone), {padding: 20})
     }
   }

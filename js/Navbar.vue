@@ -4,14 +4,14 @@
     <a class="navbar-item" :href="homepage">
       Geozones
     </a>
-    <div class="navbar-burger burger" data-target="navbarExampleTransparentExample">
+    <div class="navbar-burger burger" @click="toggleNav" :class="{'is-active' : showNav}">
       <span></span>
       <span></span>
       <span></span>
     </div>
   </div>
 
-  <div id="navbarExampleTransparentExample" class="navbar-menu">
+  <div class="navbar-menu" :class="{'is-active' : showNav}">
     <div class="navbar-start">
       <b-dropdown v-model="level" aria-role="menu" class="navbar-item">
         <b-button slot="trigger" icon-left="layer-group" icon-right="caret-down">
@@ -64,10 +64,10 @@ export default {
         this.$refs.calendarDropdown.toggle()
       }
     },
-    ...mapGetters(['levels', 'homepage', 'github']),
+    ...mapGetters(['levels', 'homepage', 'github', 'showNav']),
   },
   methods: {
-    ...mapActions(['setLevel', 'setDate'])
+    ...mapActions(['setLevel', 'setDate', 'toggleNav'])
   },
 }
 </script>
@@ -75,6 +75,10 @@ export default {
 <style lang="postcss">
 .main-navbar {
   background-color: rgba(255, 255, 255, 0.6);
+
+  .dropdown + .dropdown {
+    margin-left: 0;
+  }
 }
 
 .calendar-dropdown {
