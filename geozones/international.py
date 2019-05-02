@@ -100,9 +100,13 @@ UE_COUNTRIES = (
     'ro', 'gb', 'sk', 'si', 'se'
 )
 
-country_group.aggregate('ue', _('European Union'), [
-    'country:{0}'.format(code) for code in UE_COUNTRIES
-], parents=['country-group:world'], keys={'default': 'ue'})
+country_group.aggregate(
+    'ue', _('European Union'),
+    ['country:{0}'.format(code) for code in UE_COUNTRIES],
+    parents=['country-group:world'],
+    keys={'default': 'ue'},
+    wikipedia='en:European_Union',
+)
 
 
 @country.postprocessor()
