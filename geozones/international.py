@@ -106,6 +106,7 @@ country_group.aggregate(
     parents=['country-group:world'],
     keys={'default': 'ue'},
     wikipedia='en:European_Union',
+    wikidata='Q458',
 )
 
 
