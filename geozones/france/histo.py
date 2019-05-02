@@ -73,14 +73,15 @@ def load_collectivites(zones, root):
     filename = os.path.join(root, 'collectivites.csv')
     data = [{
         '_id': line['id'],
-        'code': line['insee_code'],
+        'code': line['insee_code'].lower(),
         'level': 'fr:collectivite-outre-mer',
         'name': line['name'],
-        'iso2': line['iso2'],
+        # 'iso2': line['iso2'],
         'parents': (['country:fr', 'country-group:ue', 'country-group:world'] +
                     line['parents'].split(';')),
         'keys': {
-            'insee': line['insee_code'],
+            'insee': line['insee_code'].lower(),
+            'iso2': line['iso2'].lower(),
         },
         'successors': line['successors'].split(';'),
         'ancestors': line['ancestors'].split(';'),

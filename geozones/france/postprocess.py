@@ -1,21 +1,15 @@
-import csv
-
 from collections import Counter
 from itertools import groupby
 
 from pymongo import DESCENDING
 
-from ..dbpedia import execute_sparql_query
+from ..dbpedia import execute_sparql_query, dbpedia_to_wikipedia
 from ..dbpedia import RDF_PREFIXES, SPARQL_PREFIXES, SPARQL_BY_URI
-from ..tools import info, success, warning, iter_over_cog, progress
+from ..tools import info, success, warning, progress, error
 from ..tools import aggregate_multipolygons, geom_to_multipolygon, chunker
 
-from .histo import (
-    retrieve_current_departement, retrieve_current_region,
-    retrieve_current_metro_departements, retrieve_current_drom_departements,
-)
-
-from .model import canton, departement, epci, commune, arrondissement, iris
+from .model import canton, departement, epci, commune, arrondissement, iris, region, collectivite
+from .model import droms, departements_metropole
 from .model import PARIS_DISTRICTS, LYON_DISTRICTS, MARSEILLE_DISTRICTS
 
 '''
@@ -44,11 +38,47 @@ def process_postal_codes(db, data):
     success('Processed {0} french postal codes', processed)
 
 
+def _get_parent(db, level, row, field, date):
+    code = row
+    for part in field.split('.'):
+        if not code.get(part):
+            return
+        code = code[part]
+    code = code.lower()
+    parent = db.zone(level.id, code, date)
+    if parent:
+        return parent['_id']
+    else:
+        error('Unable to find zone {0}:{1}@{2}', level.id, code, date)
+
+
 @commune.postprocessor('https://github.com/etalab/decoupage-administratif/releases/download/v0.5.0/communes.json')
 def attach_current_french_communes_parents(db, data):
-    # info('Attaching parents to french communes')
-    for row in progress(data, 'Attaching parents to french communes'):
-        print(row)
+    processed = 0
+    now = '2019-01-01'
+    for row in progress(data, 'Updating current french communes metadata'):
+        parents = [
+            id for id in (
+                _get_parent(db, level, row, field, now)
+                for level, field in (
+                    (region, 'region'),
+                    (departement, 'departement'),
+                    (arrondissement, 'arrondissement'),
+                    (collectivite, 'collectiviteOutremer.code')
+                )
+            ) if id
+        ]
+        ops = {}
+        if parents:
+            ops['$addToSet'] = {'parents': {'$each': parents}}
+        if row.get('population'):
+            ops['$set'] = {'population': row['population']}
+        if not ops:
+            continue
+        zone = db.update_zone(commune.id, row['code'], '2019-01-01', ops)
+        if zone:
+            processed += 1
+    success('Updated {0} french communes', processed)
 
 
 # @commune.postprocessor('https://www.insee.fr/fr/statistiques/fichier/2666684/france2017-txt.zip')  # NOQA
@@ -83,7 +113,7 @@ def attach_current_french_communes_parents(db, data):
 
 
 @commune.postprocessor()
-def commune_with_districts(db, filename):
+def commune_with_districts(db):
     info('Attaching Paris town districts')
     paris = db.find_one({'_id': 'fr:commune:75056@1942-01-01'})
     parents = paris['parents']
@@ -123,6 +153,7 @@ URI_RDF_PROPERTIES_FR = (
     'o:area',
     'o:blazon',
     'o:flag',
+    'o:emblem',
 )
 
 # Number of zones to retrieve by SPARQL query
@@ -152,11 +183,10 @@ def group_by_uri(results):
 @commune.postprocessor()
 def fetch_missing_data_from_dbpedia(db):
     info('Fetching DBPedia data')
-    # processed = 0
     count = Counter()
-    # Aggregate and iter over EPCI's SIRENs
     pipeline = [
         {'$match': {
+            'level': commune.id,
             'dbpedia': {'$ne': None},
             '$or': [
                 {'population': None},
@@ -256,8 +286,7 @@ def compute_commune_with_districts_population(db):
 @commune.postprocessor()
 def attach_counties_to_subcountries(db):
     info('Attaching French Metropolitan counties')
-    ids = [departement['_id']
-           for departement in retrieve_current_metro_departements(db)]
+    ids = [departement['_id'] for departement in departements_metropole(db)]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset:fr:metro'}}
@@ -265,8 +294,7 @@ def attach_counties_to_subcountries(db):
     success('Attached {0} French Metropolitan children', result.modified_count)
 
     info('Attaching French DROM counties')
-    ids = [departement['_id']
-           for departement in retrieve_current_drom_departements(db)]
+    ids = [departement['_id'] for departement in droms(db)]
     result = db.update_many(
         {'$or': [{'_id': {'$in': ids}}, {'parents': {'$in': ids}}]},
         {'$addToSet': {'parents': 'country-subset:fr:drom'}}
@@ -391,7 +419,7 @@ def compute_region_population(db):
     success('Computed population for {0} french regions', processed)
 
 
-@commune.postprocessor()
+@commune.postprocessor()  # Needs communes population, geometry and area to be processed
 def attach_epci(db):
     '''
     Attach EPCI towns to their EPCI from
@@ -399,17 +427,23 @@ def attach_epci(db):
     '''
     info('Processing EPCI town list')
     count = Counter()
-    for zone in db.find({'level': epci.id}):
+    for zone in progress(db.find({'level': epci.id}), 'Attaching EPCIs members'):
+        towns = [
+            db.zone(commune.id, code.lower().zfill(5), zone['validity']['start'])
+            for code in zone['_towns']
+        ]
+        ids = [t['_id'] for t in towns]
+
         # Attach EPCI as towns parent
         result = db.update_many(
-            {'_id': {'$in': zone['_towns']}},
+            {'_id': {'$in': ids}},
             {'$addToSet': {'parents': zone['_id']}})
         count['processed'] += result.modified_count
 
         # Try to construct geometries and compute areas
         geoms, areas = zip(*[
             (t.get('geom'), t.get('area'))
-            for t in db.find({'_id': {'$in': zone['_towns']}})
+            for t in db.find({'_id': {'$in': ids}})
         ])
         if all(geoms):
             try:
@@ -441,6 +475,7 @@ SIREN_RDF_PROPERTIES = (
     'o:area',
     'o:blazon',
     'o:flag',
+    'o:emblem',
 )
 
 SPARQL_BY_SIREN = '''{prefixes}
@@ -475,8 +510,8 @@ def group_by_siren(results):
         )
 
 
-@commune.postprocessor()
-def fetch_epci_data_from_dbpedia(db, filename):
+@epci.postprocessor()
+def fetch_epci_data_from_dbpedia(db):
     info('Fetching EPCI DBPedia data from their SIREN')
     count = Counter()
     # Aggregate and iter over EPCI's SIRENs
@@ -500,7 +535,7 @@ def fetch_epci_data_from_dbpedia(db, filename):
 
         for siren, uri, data in group_by_siren(execute_sparql_query(query)):
             # DBPedia URI, logo, flag, blazon are (almost) valid at any time
-            metadata = {'dbpedia': uri}
+            metadata = {'dbpedia': uri, 'wikipedia': dbpedia_to_wikipedia(uri)}
             if 'fr:logo' in data:
                 metadata['logo'] = data['fr:logo'].replace(' ', '_')
             if 'o:flag' in data:

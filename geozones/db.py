@@ -60,10 +60,10 @@ class DB(Collection):
             {'validity.start': None, 'validity.end': {'$gte': at}},
         ]}
 
-    def zone(self, level, code, at=TODAY):
+    def zone(self, level, code, at=TODAY, **kwargs):
         '''Get a Zone given its level, its code and a date'''
         query = self._valid_at(at)
-        query.update(level=level, code=code)
+        query.update(level=level, code=code, **kwargs)
         return self.find_one(query)
 
     def update_zone(self, level, code, at, ops):
@@ -73,10 +73,10 @@ class DB(Collection):
         return self.find_one_and_update(query, ops)
 
 
-    def level(self, level, at=TODAY):
+    def level(self, level, at=TODAY, **kwargs):
         '''Get all Zones for a given level and a date'''
         query = self._valid_at(at)
-        query.update(level=level)
+        query.update(level=level, **kwargs)
         return self.find(query)
 
     def fetch_zones(self, level, code=None, before=None, after=None):

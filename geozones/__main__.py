@@ -40,7 +40,6 @@ urlretrieve = FancyURLopener().retrieve
 
 def downloadable_urls(ctx):
     urls = (level.downloads for level in ctx.obj['levels'] if level.downloads)
-    # return set([url for lst in urls for url in lst] + GEOHISTO_URLS)
     return set([url for lst in urls for url in lst])
 
 
@@ -349,7 +348,7 @@ def dist(ctx, pretty, split, compress, serialization, keys):
 @click.option('-r', '--serialization', default='json',
               type=click.Choice(['json', 'msgpack']))
 @click.option('-k', '--keys', default=None)
-def full(ctx, drop, pretty, split, compress, serialization, keys):
+def full(ctx, pretty, split, compress, serialization, keys):
     '''
     Perfom full processing, execute all operations from download to dist.
 

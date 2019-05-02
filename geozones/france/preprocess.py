@@ -83,7 +83,6 @@ def load_collectivites(db, data):
         'code': row['insee_code'].lower(),
         'level': collectivite.id,
         'name': row['name'],
-        'iso2': row['iso2'],
         'parents': (['country:fr', 'country-group:ue', 'country-group:world'] +
                     row['parents'].split(';')),
         'keys': {
