@@ -13,7 +13,7 @@ import msgpack
 from .db import DB
 from .tools import (
     info, success, title, ok, error, section, warning, _secho,
-    extract_meta_from_headers
+    extract_meta_from_headers, PROGRESS, PROGRESS_FILL_CHAR
 )
 from .model import root
 from .logos import fetch_logos, compress_logos
@@ -99,14 +99,15 @@ def download(ctx):
         target_dir = os.path.dirname(target)
 
         try:
-            _, size = extract_meta_from_headers(url)
+            meta = extract_meta_from_headers(url)
         except urllib.error.HTTPError:
             warning('Error with URL {0}.'.format(url))
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
         info('Downloading {0}'.format(url))
-        with click.progressbar(length=size, width=0) as bar:
+        size = meta.get('size')
+        with click.progressbar(length=size, width=0, label=PROGRESS, fill_char=PROGRESS_FILL_CHAR) as bar:
             def reporthook(blocknum, blocksize, totalsize):
                 read = blocknum * blocksize
                 if read <= 0:
@@ -274,9 +275,9 @@ def dist(ctx, pretty, split, compress, serialization, keys):
     if split:
         for level_id in level_ids:
             filename = 'zones-{level}.{serialization}'.format(
-                level=level_id.replace('/', '-'), serialization=serialization)
+                level=level_id.replace(':', '-'), serialization=serialization)
             with ok('Generating {filename}'.format(filename=filename)):
-                zones = geozones.find({'level': level_id})
+                zones = geozones.find({'level': level_id, 'code': {'$exists': True}})
                 if serialization == 'json':
                     with open(filename, 'w') as out:
                         geojson.dump(zones, out, pretty=pretty, keys=keys)
@@ -289,7 +290,7 @@ def dist(ctx, pretty, split, compress, serialization, keys):
     else:
         filename = 'zones.{serialization}'.format(serialization=serialization)
         with ok('Generating {filename}'.format(filename=filename)):
-            zones = geozones.find({'level': {'$in': level_ids}})
+            zones = geozones.find({'level': {'$in': level_ids}, 'code': {'$exists': True}})
             if serialization == 'json':
                 with open(filename, 'w') as out:
                     geojson.dump(zones, out, pretty=pretty, keys=keys)
@@ -342,7 +343,6 @@ def dist(ctx, pretty, split, compress, serialization, keys):
 
 @cli.command()
 @click.pass_context
-@click.option('-d', '--drop', is_flag=True)
 @click.option('-p', '--pretty', is_flag=False)
 @click.option('-s', '--split', is_flag=True)
 @click.option('-c/-nc', '--compress/--no-compress', default=False)
@@ -357,7 +357,6 @@ def full(ctx, drop, pretty, split, compress, serialization, keys):
     '''
     title(textwrap.dedent(full.__doc__))
     ctx.invoke(download)
-    # ctx.invoke(preload, drop=drop)
     ctx.invoke(preprocess)
     ctx.invoke(load)
     ctx.invoke(aggregate)
@@ -373,7 +372,7 @@ def logos(ctx, compress):
     '''Fetch logos from data'''
     title(logos.__doc__)
     zones = ctx.obj['db']
-    fetch_logos(zones, DL_DIR)
+    fetch_logos(zones, DIST_DIR)
     if compress:
         compress_logos(DL_DIR, DIST_DIR)
 
@@ -402,7 +401,7 @@ def status(ctx):
     section('coverage')
     zones = ctx.obj['db']
     total = 0
-    properties = ('population', 'area', 'wikipedia')
+    properties = ('population', 'area', 'wikipedia', 'geom', 'code')
     totals = dict((prop, 0) for prop in properties)
 
     def countprop(name):
@@ -429,8 +428,12 @@ def status(ctx):
     for level in ctx.obj['levels']:
         count = zones.count({'level': level.id})
         total += count
-        click.echo('{0}: {1}'.format(level.id, count))
-
+        msg = '{0}: {1}'.format(level.id, count)
+        if count == 0:
+            click.secho(msg, fg='yellow')
+            continue
+        else:
+            click.echo(msg)
         for prop in properties:
             prop_count = counts[prop].get(level.id, 0)
             totals[prop] += prop_count

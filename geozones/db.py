@@ -1,12 +1,15 @@
 import click
 
+from datetime import date
+
 from pymongo import MongoClient, ASCENDING
 from pymongo.collection import Collection
 from pymongo.errors import BulkWriteError
 
-from .tools import error
+from .tools import error, progress
 
 DB_NAME = 'geozones'
+TODAY = date.today().isoformat()
 
 
 class DB(Collection):
@@ -41,10 +44,40 @@ class DB(Collection):
 
             return e._OperationFailure__details['nInserted']
 
-    # def fetch_current(self, level, code):
-    #     query = {'level': level, 'code': code}
+    def _valid_at(self, at):
+        '''Build a validity query for a given date'''
+        if isinstance(at, date):
+            at = date.isoformat()
+        return {'$or': [
+            # Zones without validity boundings, ie. valid anytime
+            {'validity': None},
+            {'validity.start': None, 'validity.end': None},
+            # Ended zones with matching validity boundings
+            {'validity.start': {'$lte': at}, 'validity.end': {'$gte': at}},
+            # Not ended zones with matching validity start bounding
+            {'validity.start': {'$lte': at}, 'validity.end': None},
+            # Ended zones with undefined start and matching validity end bounding
+            {'validity.start': None, 'validity.end': {'$gte': at}},
+        ]}
 
-    #     return self.find_one(query)
+    def zone(self, level, code, at=TODAY):
+        '''Get a Zone given its level, its code and a date'''
+        query = self._valid_at(at)
+        query.update(level=level, code=code)
+        return self.find_one(query)
+
+    def update_zone(self, level, code, at, ops):
+        '''Update a Zone given its level, its code and a date'''
+        query = self._valid_at(at)
+        query.update(level=level, code=code)
+        return self.find_one_and_update(query, ops)
+
+
+    def level(self, level, at=TODAY):
+        '''Get all Zones for a given level and a date'''
+        query = self._valid_at(at)
+        query.update(level=level)
+        return self.find(query)
 
     def fetch_zones(self, level, code=None, before=None, after=None):
         """
@@ -81,7 +114,7 @@ class DB(Collection):
                         .limit(1))
         return zone and zone[0] or None
 
-    def aggregate_with_progress(self, pipeline):
+    def aggregate_with_progress(self, pipeline, msg=None):
         '''
         Iter over the result of an aggregation and display a progress bar.
 
@@ -92,7 +125,5 @@ class DB(Collection):
         ]))
         total = int(count_result['count'])
 
-        with click.progressbar(self.aggregate(pipeline),
-                               width=0, length=total) as bar:
-            for item in bar:
-                yield item
+        for item in progress(self.aggregate(pipeline), msg=msg, length=total):
+            yield item
