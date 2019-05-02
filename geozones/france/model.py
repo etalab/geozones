@@ -1,11 +1,6 @@
 from ..db import DB
 from ..model import Level, country, country_subset
 
-from .histo import (
-    retrieve_current_metro_departements, retrieve_current_drom_departements,
-    retrieve_current_collectivites
-)
-
 _ = lambda s: s  # noqa: E731
 
 region = Level('fr:region', _('French region'), 40, country)
@@ -30,21 +25,35 @@ MARSEILLE_DISTRICTS = [
 LYON_DISTRICTS = [
     'fr:commune:6938{0}@1942-01-01'.format(i) for i in range(1, 9)]
 
+TODAY = '2019-01-01'
+
+def _metro(db):
+    return (z for z in db.level(departement.id, TODAY) if len(z['code']) == 2)
+
+
+def _drom(db):
+    return (z for z in db.level(departement.id, TODAY) if len(z['code']) == 3)
+
 
 country_subset.aggregate(
     'fr:metro', _('Metropolitan France'),
-    lambda db: [zone['_id'] for zone in retrieve_current_metro_departements(db)],
-    parents=['country:fr', 'country-group:ue', 'country-group:world'])
+    lambda db: [zone['_id'] for zone in _metro(db)],
+    parents=['country:fr', 'country-group:ue', 'country-group:world'],
+    wikipedia='fr:France_métropolitaine',
+)
 
 country_subset.aggregate(
     'fr:drom', 'DROM',
-    lambda db: [zone['_id'] for zone in retrieve_current_drom_departements(db)],
-    parents=['country:fr', 'country-group:ue', 'country-group:world'])
+    lambda db: [zone['_id'] for zone in _drom(db)],
+    parents=['country:fr', 'country-group:ue', 'country-group:world']
+)
 
 country_subset.aggregate(
     'fr:dromcom', 'DROM-COM',
     lambda db: (
-        [zone['_id'] for zone in retrieve_current_drom_departements(db)] +
-        [zone['_id'] for zone in retrieve_current_collectivites(db)]
+        [zone['_id'] for zone in _drom(db)] +
+        [zone['_id'] for zone in db.level(collectivite.id, TODAY)]
     ),
-    parents=['country:fr', 'country-group:ue', 'country-group:world'])
+    parents=['country:fr', 'country-group:ue', 'country-group:world'],
+    wikipedia='fr:France_d%27outre-mer',
+)
