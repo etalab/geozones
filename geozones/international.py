@@ -60,6 +60,7 @@ def ne_prop(props, key, cast=str):
         return cast(value)
 
 
+
 @country.extractor(NE_URL, encoding='utf-8')  # NOQA
 def extract_country(db, polygon):
     '''
@@ -86,6 +87,15 @@ def extract_country(db, polygon):
             'fips': ne_prop(props, 'FIPS_10'),
         }
     }
+
+
+@country.extractor('https://datahub.io/core/geo-countries/r/countries.geojson')
+def extract_countries(db, polygon):
+    '''
+    Use cleaner shapes from Datahub geo countries: https://datahub.io/core/geo-countries
+    '''
+    props = polygon['properties']
+    return next(db.level(country.id, **{'keys.iso3': props['ISO_A3'].lower()}), None)
 
 
 # World Aggregate
