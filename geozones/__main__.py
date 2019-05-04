@@ -1,26 +1,18 @@
 #!/usr/bin/env python
 import json
+import math
 import os
 import tarfile
 import textwrap
-import urllib
-from urllib.request import FancyURLopener
 
 import click
-from pymongo import ASCENDING
 import msgpack
+import requests
 
 from .db import DB
-from .tools import (
-    info, success, title, ok, error, section, warning, _secho,
-    extract_meta_from_headers, PROGRESS, PROGRESS_FILL_CHAR
-)
-from .model import root
 from .logos import fetch_logos, compress_logos
-from .france.histo import (
-    load_communes, load_departements, load_collectivites, load_regions,
-    load_epcis, URLS as GEOHISTO_URLS
-)
+from .model import root
+from .tools import info, success, title, ok, error, section, _secho, progress
 from . import geojson
 
 # Importing levels modules in order (international first)
@@ -34,8 +26,6 @@ CONTEXT_SETTINGS = {
     'help_option_names': ['-?', '--help'],
     'auto_envvar_prefix': 'GEOZONES',
 }
-
-urlretrieve = FancyURLopener().retrieve
 
 
 def downloadable_urls(ctx):
@@ -76,6 +66,27 @@ def cli(ctx, drop, level, exclude, mongo, home):
         db.initialize()
 
 
+def _download(url, dest):
+    # Streaming, so we can iterate over the response.
+    response = requests.get(url, stream=True)
+
+    try:
+        response.raise_for_status()
+    except requests.HTTPError:
+        error('Download failed with {0}: {1}', response.status_code, response.reason)
+        return
+
+    # Total size in bytes.
+    size = int(response.headers.get('content-length', 0))
+    block = 1024
+    current = 0
+    length = math.ceil(size // block)
+    with open(dest, 'wb') as out:
+        for data in progress(response.iter_content(block), length=length):
+            out.write(data)
+            current += len(data)
+
+
 @cli.command()
 @click.pass_context
 def download(ctx):
@@ -96,24 +107,11 @@ def download(ctx):
 
         info('Processing {0}'.format(filename))
         target_dir = os.path.dirname(target)
-
-        try:
-            meta = extract_meta_from_headers(url)
-        except urllib.error.HTTPError:
-            warning('Error with URL {0}.'.format(url))
         if not os.path.exists(target_dir):
             os.makedirs(target_dir)
 
         info('Downloading {0}'.format(url))
-        size = meta.get('size')
-        with click.progressbar(length=size, width=0, label=PROGRESS, fill_char=PROGRESS_FILL_CHAR) as bar:
-            def reporthook(blocknum, blocksize, totalsize):
-                read = blocknum * blocksize
-                if read <= 0:
-                    return
-                bar.update(blocksize)
-
-            urlretrieve(url, target, reporthook=reporthook)
+        _download(url, target)
 
 
 @cli.command()
@@ -121,45 +119,6 @@ def download(ctx):
 def sourceslist(ctx):
     '''Generate a datasets donwload list for external usage'''
     print('\n'.join(l for l, _ in downloadable_urls(ctx)))
-
-
-@cli.command()
-@click.option('-d', '--drop', is_flag=True)
-@click.pass_context
-def preload(ctx, drop):
-    '''
-    Preload all historical zones from geohisto.
-
-    Take a few seconds.
-    '''
-    title(textwrap.dedent(preload.__doc__))
-    zones = ctx.obj['db']
-    if drop:
-        info('Drop existing collection')
-        zones.drop()
-
-    with ok('Creating index (level,code)'):
-        zones.create_index([('level', ASCENDING), ('code', ASCENDING)])
-    info('Creating index (level,keys)')
-    zones.create_index([('level', ASCENDING), ('keys', ASCENDING)])
-    info('Creating index (parents)')
-    zones.create_index('parents')
-
-    info('Load regions')
-    total = load_regions(zones, DL_DIR)
-    success('Done: Loaded {0} regions'.format(total))
-    info('Load counties')
-    total = load_departements(zones, DL_DIR)
-    success('Done: Loaded {0} counties'.format(total))
-    info('Load overseas collectivities')
-    total = load_collectivites(zones, DL_DIR)
-    success('Done: Loaded {0} overseas collectivities'.format(total))
-    info('Load towns')
-    total = load_communes(zones, DL_DIR)
-    success('Done: Loaded {0} towns'.format(total))
-    info('Load EPCIs')
-    total = load_epcis(zones, DL_DIR)
-    success('Done: Loaded {0} EPCIs'.format(total))
 
 
 @cli.command()
@@ -400,7 +359,7 @@ def status(ctx):
     section('coverage')
     zones = ctx.obj['db']
     total = 0
-    properties = ('population', 'area', 'wikipedia', 'geom', 'code')
+    properties = ('population', 'area', 'wikipedia', 'geom', 'code', 'wikidata')
     totals = dict((prop, 0) for prop in properties)
 
     def countprop(name):

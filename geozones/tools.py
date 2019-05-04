@@ -60,13 +60,13 @@ def ok(text):
 def progress(collection, msg=None, length=True):
     label = ' '.join((PROGRESS, msg)) if msg else PROGRESS
     kwargs = {'label': label, 'width': 0, 'fill_char': PROGRESS_FILL_CHAR}
-    if length is True and inspect.isgenerator(collection) or isinstance(collection, Iterator):
-            collection, tmp = tee(collection)
-            kwargs['length'] = sum(1 for _ in tmp)  # Don't use list(), it will waste memory
-    elif length: 
+    if length is True and (inspect.isgenerator(collection) or isinstance(collection, Iterator)):
+        collection, tmp = tee(collection)
+        kwargs['length'] = sum(1 for _ in tmp)  # Don't use list(), it will waste memory
+    elif length:
         # It's an integer
         kwargs['length'] = length
-        
+
     with click.progressbar(collection, **kwargs) as bar:
         for item in bar:
             yield item
