@@ -29,8 +29,23 @@
         <dt>Code</dt>
         <dd>{{ zone.properties.code }}</dd>
 
+        <dt v-if="zone.properties.capital">Capital</dt>
+        <dd v-if="zone.properties.capital">
+          <a href @click.prevent="setZone(zone.properties.capital)">{{ zone.properties.capital }}</a>
+        </dd>
+
         <dt>Parents</dt>
         <dd v-for="parent in parents" :key="parent"><a href @click.prevent="setZone(parent)">{{ parent }}</a></dd>
+
+        <dt v-if="ancestors">Ancestor(s)</dt>
+        <dd v-for="ancestor in ancestors" :key="ancestor">
+          <a href @click.prevent="setZone(ancestor)">{{ ancestor }}</a>
+        </dd>
+
+        <dt v-if="successors">successor(s)</dt>
+        <dd v-for="successor in successors" :key="successor">
+          <a href @click.prevent="setZone(successor)">{{ successor }}</a>
+        </dd>
 
         <dt>Keys</dt>
         <dd>
@@ -58,8 +73,7 @@
   </div>
   <footer class="card-footer">
     <a v-if="wikipedia" :href="wikipedia" class="card-footer-item">Wikipedia</a>
-    <!--a href="#" class="card-footer-item">Edit</a>
-    <a href="#" class="card-footer-item">Delete</a-->
+    <a v-if="zone.properties.website" :href="zone.properties.website" class="card-footer-item">Website</a>
   </footer>
 </div>
 </template>
@@ -80,6 +94,18 @@ export default {
       }
       return this.zone.properties.keys
     },
+    ancestors() {
+      if (typeof this.zone.properties.ancestors === 'string') {  // MapboxGL fix
+        return JSON.parse(this.zone.properties.ancestors)
+      }
+      return this.zone.properties.ancestors
+    },
+    successors() {
+      if (typeof this.zone.properties.successors === 'string') {  // MapboxGL fix
+        return JSON.parse(this.zone.properties.successors)
+      }
+      return this.zone.properties.successors
+    },
     parents() {
       if (typeof this.zone.properties.parents === 'string') {  // MapboxGL fix
         return JSON.parse(this.zone.properties.parents)
@@ -98,7 +124,7 @@ export default {
     ...mapGetters(['zone'])
   },
   methods: {
-    dbpediaMedia: filename => `${DBPEDIA_MEDIA_URL}${filename}`,
+    dbpediaMedia: filename => filename.startsWith('http') ? filename : `${DBPEDIA_MEDIA_URL}${filename}`,
     formatValue: value => Array.isArray(value) ? value.join(', ') : value,
     ...mapActions(['setZone'])
   }
@@ -142,7 +168,7 @@ export default {
     }
 
     dl.keys {
-      $indent: 45px;
+      $indent: 70px;
       dt {
         width: $indent;
       }

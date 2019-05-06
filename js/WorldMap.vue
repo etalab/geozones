@@ -30,18 +30,6 @@ export default {
       map.addSource('zone', {type: 'geojson', data: {type: 'Feature'}})
       map.addLayer({
         id: 'zone',
-        type: 'fill',
-        source: 'zone',
-        paint: {
-          "fill-opacity": 0.6,
-          'fill-color': {
-            type: 'identity',
-            property: '_color',
-          },
-        }
-      })
-      map.addLayer({
-        'id': 'zone-outline',
         'type': 'line',
         'source': 'zone',
         'paint': {
@@ -76,7 +64,9 @@ export default {
       }
     },
     onZoneClick(evt) {
-      this.setZone(evt.features[0])
+      const zone = evt.features[0]
+      this.map.getSource('zone').setData(zone)
+      this.setZone(zone.properties.id)
     },
     ...mapActions(['setZone'])
   },
@@ -90,7 +80,7 @@ export default {
     },
     zone(zone) {
       this.map.getSource('zone').setData(zone)
-      this.map.fitBounds(bbox(zone), {padding: 20})
+      this.map.fitBounds(bbox(zone), {padding: 50})
     }
   }
 }

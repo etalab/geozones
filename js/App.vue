@@ -45,6 +45,8 @@ main {
   z-index: 1;
   top: calc($navbar-height + 10px);
   right: 10px;
-  min-width: 350px; /* TODO: Make it responsive */ 
+  min-width: 350px; /* TODO: Make it responsive */
+  max-height: 99%;
+  opacity: 0.9;
 }
 </style>
