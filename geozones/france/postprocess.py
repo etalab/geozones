@@ -14,21 +14,30 @@ WARNING:
 '''
 
 
-@commune.postprocessor(
-    'http://datanova.legroupe.laposte.fr/explore/dataset/laposte_hexasmal/download/?format=csv&timezone=Europe/Berlin&use_labels_for_header=true',
-    filename='laposte-hexasmal.csv', delimiter=';', encoding='cp1252'
-)
-def process_postal_codes(db, data):
+@commune.postprocessor('https://unpkg.com/codes-postaux@3.2.0/codes-postaux-full.json')
+def fr_postal_codes(db, data):
     '''
     Extract postal codes from:
-    https://www.data.gouv.fr/fr/datasets/base-officielle-des-codes-postaux/
+    https://www.data.gouv.fr/fr/datasets/codes-postaux/
+
+    codePostal : code postal
+    libelleAcheminement : libellé d'acheminement (en majuscules non accentuées à la norme postale)
+    codeCommune : code INSEE de la commune
+    nomCommune : nom de la commune
+    Liste des champs supplémentaires (full)
+    Tous les champs suivants sont optionnels.
+
+    codeVoie : code FANTOIR de la voie concernée
+    codeAncienneCommune : code INSEE de l'ancienne commune à laquelle est rattaché le codeVoie
+    codeParite : code de parité (0 pour numéros pairs, 1 pour numéros impairs)
+    borneInferieure : plus petit numéro du tronçon
+    borneSuperieure : plus grand numéro du tronçon
     '''
     processed = 0
-    for row in progress(data, 'Processing french postal codes'):
-        match = db.find_one_and_update(
-            {'level': commune.id, 'code': row['Code_commune_INSEE']},
-            {'$addToSet': {'keys.postal': row['Code_postal']}}
-        )
+    for row in progress(data, 'Processing french postal code'):
+        match = db.update_zone(commune.id, row['codeCommune'], ops={
+            '$addToSet': {'keys.postal': row['codePostal']}
+        })
         if match:
             processed += 1
     success('Processed {0} french postal codes', processed)
@@ -75,37 +84,6 @@ def attach_current_french_communes_parents(db, data):
         if zone:
             processed += 1
     success('Updated {0} french communes', processed)
-
-
-# @commune.postprocessor('https://www.insee.fr/fr/statistiques/fichier/2666684/france2017-txt.zip')  # NOQA
-# def process_insee_cog(db, filename):
-#     '''Use informations from INSEE COG to attach parents.
-#     https://www.insee.fr/fr/information/2666684
-#     '''
-#     info('Processing INSEE COG')
-#     processed = 0
-#     districts = {}
-#     for row in iter_over_cog(filename, 'France2017.txt'):
-#         region_code = row['REG']
-#         departement_code = row['DEP']
-#         district_code = row['AR']
-#         region = retrieve_current_region(db, region_code)
-#         departement = retrieve_current_departement(db, departement_code)
-
-#         if district_code:
-#             district_code = ''.join((departement_code, district_code))
-#             district_id = 'fr:arrondissement:{0}'.format(district_code)
-#             if district_id not in districts and region and departement:
-#                 districts[district_id] = [region['_id'], departement['_id']]
-
-#     for district_id, parents in districts.items():
-#         if db.find_one_and_update(
-#                 {'_id': district_id},
-#                 {'$addToSet': {
-#                     'parents': {'$each': parents},
-#                 }}):
-#             processed += 1
-#     success('Attached {0} french districts to their parents', processed)
 
 
 @commune.postprocessor()
