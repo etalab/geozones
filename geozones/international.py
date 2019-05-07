@@ -1,12 +1,14 @@
+from . import wiki
 from .model import country, country_group
-from .tools import info, warning, success
+from .tools import info, warning, success, progress
 
 _ = lambda s: s  # noqa: E731
 
 
 # This is the latest URL (currently 4.1.0)
 # There is no versionned adress right now
-NE_URL = 'https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/110m/cultural/ne_110m_admin_0_countries_lakes.zip'
+NE_URL = ('https://www.naturalearthdata.com/http//www.naturalearthdata.com/download/'
+          '110m/cultural/ne_110m_admin_0_countries_lakes.zip')
 
 # Natural Earth stores None as '-99'
 NE_NONE = '-99'
@@ -89,7 +91,7 @@ def extract_country(db, polygon):
     }
 
 
-@country.extractor('https://datahub.io/core/geo-countries/r/countries.geojson')
+@country.extractor('https://github.com/apihackers/geo-countries-simplified/releases/download/2019-05-06/countries.geojson')
 def extract_countries(db, polygon):
     '''
     Use cleaner shapes from Datahub geo countries: https://datahub.io/core/geo-countries
@@ -100,7 +102,11 @@ def extract_countries(db, polygon):
 
 # World Aggregate
 country_group.aggregate(
-    'world', _('World'), ['country:*'], keys={'default': 'world'})
+    'world', _('World'),
+    ['country:*'],
+    keys={'default': 'world'},
+    wikidata='Q2',
+)
 
 
 # European union
@@ -128,3 +134,113 @@ def add_ue_to_parents(db):
         {'$addToSet': {'parents': 'country-group:ue'}})
     success('Added European Union as parent to {0} countries',
             result.modified_count)
+
+
+COUNTRY_GROUPS_SPARQL_QUERY = '''
+SELECT ?grp ?grpLabel ?population ?area ?geonames ?osm ?flag ?site ?wikipedia
+WHERE
+{{
+  VALUES ?grp {{ {ids} }}
+  ?grp wdt:P2046 ?area;
+       wdt:P1082 ?population.
+  OPTIONAL {{?grp wdt:P1566 ?geonames.}}
+  OPTIONAL {{?grp wdt:P41 ?flag.}}
+  OPTIONAL {{?grp wdt:P402 ?osm.}}
+  OPTIONAL {{?grp wdt:P856 ?site.}}
+  OPTIONAL {{?wikipedia schema:about ?grp;
+                       schema:inLanguage 'en';
+                       schema:isPartOf <https://en.wikipedia.org/>.
+  }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en,fr". }}
+}}
+'''
+
+
+@country_group.postprocessor()
+def fetch_country_groups_data_from_wikidata(db):
+    info('Fetching country-groups wikidata metadata')
+    groups = list(db.level(country_group.id, db.TODAY, wikidata={'$exists': True}))
+    ids = {grp['wikidata']: grp['_id'] for grp in groups}
+
+    wdids = ' '.join(f'wd:{id}' for id in ids.keys())
+    query = COUNTRY_GROUPS_SPARQL_QUERY.format(ids=wdids)
+    results = wiki.data_sparql_query(query)
+    results = wiki.data_reduce_result(results, 'grp')
+
+    for row in results:
+        uri = row['grp']
+        wdid = wiki.data_uri_to_id(uri)
+        zone_id = ids.get(wdid)
+        if zone_id:
+            db.find_one_and_update({'_id': zone_id}, {
+                '$set': {k: v for k, v in {
+                    'wikidata': wdid,
+                    'wikipedia': wiki.wikipedia_url_to_id(row['wikipedia']),
+                    'dbpedia': wiki.wikipedia_to_dbpedia(row['wikipedia']),
+                    'website': row.get('site'),
+                    'flag': row.get('flag'),
+                    'area': float(row.get('area', 0)) or None,
+                    'population': int(row.get('population', 0)) or None,
+                    'keys.osm': row.get('osm'),
+                    'keys.geonames': row.get('geonames'),
+                }.items() if v is not None}
+            })
+
+
+COUNTRIES_SPARQL_QUERY = '''
+SELECT DISTINCT ?country ?countryLabel ?population ?area ?iso2 ?iso3 ?geonames ?osm ?nuts ?flag ?site ?wikipedia
+WHERE
+{
+  ?country wdt:P31 wd:Q3624078;
+           wdt:P36 ?capital;
+           wdt:P2046 ?area;
+           wdt:P1082 ?population;
+           p:P297 ?iso2Stmt.
+  ?iso2Stmt ps:P297 ?iso2.
+  FILTER NOT EXISTS { ?iso2Stmt pq:P582 [] } .
+  OPTIONAL {?country p:P298 ?iso3Stmt.
+            ?iso3Stmt ps:P298 ?iso3.
+            FILTER NOT EXISTS { ?iso3Stmt pq:P582 [] } .
+            }
+  OPTIONAL {?country p:P605 ?nutsStmt.
+            ?nutsStmt ps:P605 ?nuts.
+            FILTER (regex(?nuts, '^\\\\w{2}$')) .
+            FILTER NOT EXISTS { ?nutsStmt pq:P582 [] } .
+            }
+  OPTIONAL {?country wdt:P901 ?fips.}
+  OPTIONAL {?country wdt:P1566 ?geonames.}
+  OPTIONAL {?country wdt:P41 ?flag.}
+  OPTIONAL {?country wdt:P402 ?osm.}
+  OPTIONAL {?country wdt:P856 ?site.}
+  OPTIONAL {?wikipedia schema:about ?country;
+                       schema:inLanguage 'en';
+                       schema:isPartOf <https://en.wikipedia.org/>.
+  }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "   [AUTO_LANGUAGE],en,fr". }
+}
+'''
+
+
+@country.postprocessor()
+def fetch_country_data_from_wikidata(db):
+    info('Fetching countries wikidata metadata')
+    results = wiki.data_sparql_query(COUNTRIES_SPARQL_QUERY)
+    results = wiki.data_reduce_result(results, 'country')
+    for row in progress(results):
+        iso2 = row['iso2'].lower()
+        db.update_zone(country.id, iso2, ops={
+            '$set': {k: v for k, v in {
+                'wikidata': wiki.data_uri_to_id(row['country']),
+                'wikipedia': wiki.wikipedia_url_to_id(row['wikipedia']),
+                'dbpedia': wiki.wikipedia_to_dbpedia(row['wikipedia']),
+                'website': row.get('site'),
+                'flag': row['flag'],
+                'area': float(row['area']),
+                'population': int(row['population']),
+                'keys.iso3': row.get('iso3', '').lower() or None,
+                'keys.nuts': row.get('nuts', '').lower() or None,
+                'keys.osm': row.get('osm'),
+                'keys.fips': row.get('fips', '').lower() or None,
+                'keys.geonames': row.get('geonames'),
+            }.items() if v is not None}
+        })

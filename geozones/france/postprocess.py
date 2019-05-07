@@ -1,16 +1,12 @@
 from collections import Counter
-from itertools import groupby
 
-from pymongo import DESCENDING
-
-from ..dbpedia import execute_sparql_query, dbpedia_to_wikipedia
-from ..dbpedia import RDF_PREFIXES, SPARQL_PREFIXES, SPARQL_BY_URI
-from ..tools import info, success, warning, progress, error
+from .. import wiki
+from ..tools import info, success, warning, error, progress
 from ..tools import aggregate_multipolygons, geom_to_multipolygon, chunker
 
 from .model import canton, departement, epci, commune, arrondissement, iris, region, collectivite
 from .model import droms, departements_metropole
-from .model import PARIS_DISTRICTS, LYON_DISTRICTS, MARSEILLE_DISTRICTS
+from .model import PARIS_DISTRICTS, LYON_DISTRICTS, MARSEILLE_DISTRICTS, WIKIDATA_FLAG_OF_FRANCE
 
 '''
 WARNING:
@@ -160,99 +156,75 @@ URI_RDF_PROPERTIES_FR = (
 SPARQL_CHUNK_SIZE = 150
 
 
-def reduce_uri_row(row):
-    prop = row['property']['value']
-    for prefix, url in RDF_PREFIXES.items():
-        prop = prop.replace(url, prefix)
-    return {
-        'uri': row['uri']['value'],
-        'property': prop,
-        'value': row['value']['value'],
-    }
-
-
-def group_by_uri(results):
-    reduced = map(reduce_uri_row, results)
-    ordered = sorted(reduced, key=lambda r: r['uri'])
-    for uri, rows in groupby(ordered, lambda r: r['uri']):
-        yield uri, dict(
-            (row['property'], row['value']) for row in rows
-        )
+COMMUNES_SPARQL_QUERY = f'''
+SELECT DISTINCT ?commune ?insee ?population ?area ?siren ?geonames ?flag
+                ?blazon ?logo ?site ?wikipedia ?osm
+WHERE {{
+  VALUES ?insee {{ {{codes}} }}
+  ?commune wdt:P374 ?insee
+  OPTIONAL {{?commune wdt:P1566 ?geonames.}}
+  OPTIONAL {{?commune wdt:P1616 ?siren.}}
+  OPTIONAL {{?commune wdt:P2046 ?area.}}
+  OPTIONAL {{?commune wdt:P1082 ?population.}}
+  OPTIONAL {{?commune wdt:P41 ?flag. FILTER (?flag != <{WIKIDATA_FLAG_OF_FRANCE}>)}}
+  OPTIONAL {{?commune wdt:P94 ?blazon.}}
+  OPTIONAL {{?commune wdt:P154 ?logo.}}
+  OPTIONAL {{?commune wdt:P856 ?site.}}
+  OPTIONAL {{?commune wdt:P402 ?osm.}}
+  OPTIONAL {{
+    ?wikipedia schema:about ?commune;
+               schema:inLanguage 'fr';
+               schema:isPartOf <https://fr.wikipedia.org/>.
+  }}
+}}
+'''
 
 
 @commune.postprocessor()
-def fetch_missing_data_from_dbpedia(db):
-    info('Fetching DBPedia data')
-    count = Counter()
+def fetch_communes_data_from_wikidata(db):
+    info('Fetching french communes metadata from wikidata')
+    processed = 0
+
     pipeline = [
         {'$match': {
             'level': commune.id,
-            'dbpedia': {'$ne': None},
             '$or': [
                 {'population': None},
                 {'area': None},
                 {'flag': None, 'blazon': None, 'logo': None},
             ]
         }},
-        {'$group': {'_id': '$dbpedia'}},  # Groups URIs together
+        {'$group': {'_id': '$code'}},
     ]
 
-    uris = map(lambda r: r['_id'], db.aggregate_with_progress(pipeline))
+    codes = map(lambda r: r['_id'], db.aggregate_with_progress(pipeline))
 
-    for uris in chunker(uris, SPARQL_CHUNK_SIZE):
+    for codes in chunker(codes, SPARQL_CHUNK_SIZE):
+        query = COMMUNES_SPARQL_QUERY.replace('{codes}', ' '.join('"{}"'.format(s) for s in codes))
+        results = wiki.data_sparql_query(query)
+        results = wiki.data_reduce_result(results, 'commune')
+        for row in results:
+            insee = row['insee'].lower()
+            db.update_zone(commune.id, insee, db.TODAY,  ops={
+                '$set': {k: v for k, v in {
+                    'wikidata': wiki.data_uri_to_id(row['commune']),
+                    'wikipedia': wiki.wikipedia_url_to_id(row.get('wikipedia')),
+                    'dbpedia': wiki.wikipedia_to_dbpedia(row.get('wikipedia')),
+                    'website': row.get('site'),
+                    'flag': row.get('flag'),
+                    'blazon': row.get('blazon'),
+                    'logo': row.get('logo'),
+                    'area': float(row.get('area', 0)) or None,
+                    'population': int(row.get('population', 0)) or None,
+                    'keys.osm': row.get('osm'),
+                    # Siren have no end-time but is sequential (keep last)
+                    'keys.siren': row.get('siren'),
+                    'keys.geonames': row.get('geonames'),
+                }.items() if v is not None}
+            })
+            processed += 1
 
-        query = SPARQL_BY_URI.format(
-            prefixes=SPARQL_PREFIXES,
-            uris=' '.join(map(lambda u: '<{0}>'.format(u), uris)),
-            properties=' '.join(URI_RDF_PROPERTIES_FR)
-        )
-
-        for uri, data in group_by_uri(execute_sparql_query(query)):
-            # DBPedia URI, logo, flag, blazon are (almost) valid at any time
-            # and so we update every occurence once
-            count['uri'] += 1
-            metadata = {}
-            if 'fr:logo' in data:
-                metadata['logo'] = data['fr:logo'].replace(' ', '_')
-            if 'o:flag' in data:
-                metadata['flag'] = data['o:flag'].replace(' ', '_')
-            if 'o:blazon' in data:
-                metadata['blazon'] = data['o:blazon'].replace(' ', '_')
-
-            if metadata:
-                result = db.update_many({'dbpedia': uri}, {'$set': metadata})
-                count['logos'] += result.modified_count
-
-            # Population and area are only valid on latest zones
-            # We want population and/or area from French DBPedia or
-            # their international counterparts as fallbacks.
-            metadata = {}
-            if 'fr:population' in data or 'o:populationTotal' in data:
-                population = data.get('fr:population',
-                                      data.get('o:populationTotal'))
-                if population:
-                    try:
-                        metadata['population'] = int(population)
-                    except ValueError:
-                        pass
-            if 'fr:superficie' in data or 'o:area' in data:
-                area = data.get('fr:superficie', data.get('o:area'))
-                if area:
-                    try:
-                        metadata['area'] = int(round(float(area)))
-                    except ValueError:
-                        pass
-            if metadata:
-                # Set metadata on latest zone
-                zone = db.find_one({'dbpedia': uri},
-                                   sort=[('validity.end', DESCENDING)])
-                result = db.update_one({'_id': zone['_id']},
-                                       {'$set': metadata})
-                count['population'] += 1
-
-    success('Processed data from {0} DBPedia URIs', count['uri'])
-    success('Updated logos on {0} zones', count['logos'])
-    success('Updated area and/orpopulation on {0} zones', count['population'])
+    success('Fetched {0} french communes metadata from wikidata', processed)
 
 
 @commune.postprocessor()
@@ -300,6 +272,72 @@ def attach_counties_to_subcountries(db):
         {'$addToSet': {'parents': 'country-subset:fr:drom'}}
     )
     success('Attached {0} French DROM children', result.modified_count)
+
+
+REGIONS_SPARQL_QUERY = f'''
+SELECT DISTINCT ?region ?insee ?capital ?capitalInsee ?population ?area
+                ?iso2 ?siren ?fips ?nuts2 ?geonames ?flag ?blazon ?logo
+                ?site ?wikipedia ?osm
+WHERE {{
+  ?region wdt:P31 wd:Q36784;
+          wdt:P2585 ?insee;
+          wdt:P36 ?capital.
+  OPTIONAL {{?capital wdt:P374 ?capitalInsee.}}
+  OPTIONAL {{?region p:P300 ?iso2Stmt.
+             ?iso2Stmt ps:P300 ?iso2.
+             FILTER NOT EXISTS {{ ?iso2Stmt pq:P582 [] }} .
+             }}
+  OPTIONAL {{?region wdt:P901 ?fips.}}
+  OPTIONAL {{?region wdt:P1566 ?geonames.}}
+  OPTIONAL {{?region p:P605 ?nutsStmt.
+            ?nutsStmt ps:P605 ?nuts2.
+            FILTER (regex(?nuts2, '^FR\\\\d{{2}}$')) .
+            FILTER NOT EXISTS {{ ?nutsStmt pq:P582 [] }} .
+            }}
+  OPTIONAL {{?region wdt:P1616 ?siren.}}
+  OPTIONAL {{?region wdt:P2046 ?area.}}
+  OPTIONAL {{?region wdt:P1082 ?population.}}
+  OPTIONAL {{?region wdt:P41 ?flag. FILTER (?flag != <{WIKIDATA_FLAG_OF_FRANCE}>)}}
+  OPTIONAL {{?region wdt:P94 ?blazon.}}
+  OPTIONAL {{?region wdt:P154 ?logo.}}
+  OPTIONAL {{?region wdt:P856 ?site.}}
+  OPTIONAL {{?region wdt:P402 ?osm.}}
+  OPTIONAL {{
+    ?wikipedia schema:about ?region;
+               schema:inLanguage 'fr';
+               schema:isPartOf <https://fr.wikipedia.org/>.
+  }}
+}}
+'''
+
+
+@region.postprocessor()
+def fetch_region_data_from_wikidata(db):
+    info('Fetching french regions wikidata metadata')
+    results = wiki.data_sparql_query(REGIONS_SPARQL_QUERY)
+    results = wiki.data_reduce_result(results, 'region', 'geonames', 'flag', 'siren')
+    for row in progress(results):
+        insee = row['insee'].lower()
+        db.update_zone(region.id, insee, db.TODAY,  ops={
+            '$set': {k: v for k, v in {
+                'wikidata': wiki.data_uri_to_id(row['region']),
+                'wikipedia': wiki.wikipedia_url_to_id(row['wikipedia']),
+                'dbpedia': wiki.wikipedia_to_dbpedia(row['wikipedia']),
+                'website': row.get('site'),
+                'flag': next((flag for flag in row.get('flag', []) if flag and flag != WIKIDATA_FLAG_OF_FRANCE), None),
+                'blazon': row.get('blazon'),
+                'logo': row.get('logo'),
+                'area': float(row['area']),
+                'population': int(row['population']),
+                'keys.iso2': row.get('iso2', '').lower() or None,
+                'keys.nuts2': row.get('nuts2', '').lower() or None,
+                'keys.osm': row.get('osm'),
+                'keys.fips': row.get('fips', '').lower() or None,
+                # Siren have no end-time but is sequential (keep last)
+                'keys.siren': next((s for s in sorted(row['siren'], reverse=True)), None),
+                'keys.geonames': row['geonames'],
+            }.items() if v is not None}
+        })
 
 
 @canton.postprocessor()
@@ -400,6 +438,73 @@ def compute_departement_area_and_population(db):
     success('Computed area and population for {0} french counties', processed)
 
 
+DEPARTEMENT_SPARQL_QUERY = f'''
+SELECT DISTINCT ?dpt ?dptLabel ?insee ?capital ?capitalInsee ?population ?area
+                ?iso2 ?siren ?fips ?nuts3 ?geonames ?flag ?blazon ?logo
+                ?site ?wikipedia ?osm
+WHERE {{
+  ?dpt wdt:P31 wd:Q6465;
+       wdt:P2586 ?insee;
+       wdt:P36 ?capital.
+  OPTIONAL {{?capital wdt:P374 ?capitalInsee.}}
+  OPTIONAL {{?dpt p:P300 ?iso2Stmt.
+             ?iso2Stmt ps:P300 ?iso2.
+             FILTER NOT EXISTS {{ ?iso2Stmt pq:P582 [] }} .
+             }}
+  OPTIONAL {{?dpt wdt:P901 ?fips.}}
+  OPTIONAL {{?dpt wdt:P1566 ?geonames.}}
+  OPTIONAL {{?dpt p:P605 ?nutsStmt.
+            ?nutsStmt ps:P605 ?nuts3.
+            FILTER (regex(?nuts3, '^FR\\\\d{{3}}$')) .
+            FILTER NOT EXISTS {{ ?nutsStmt pq:P582 [] }} .
+            }}
+  OPTIONAL {{?dpt wdt:P1616 ?siren.}}
+  OPTIONAL {{?dpt wdt:P2046 ?area.}}
+  OPTIONAL {{?dpt wdt:P1082 ?population.}}
+  OPTIONAL {{?dpt wdt:P41 ?flag. FILTER (?flag != <{WIKIDATA_FLAG_OF_FRANCE}>)}}
+  OPTIONAL {{?dpt wdt:P94 ?blazon.}}
+  OPTIONAL {{?dpt wdt:P154 ?logo.}}
+  OPTIONAL {{?dpt wdt:P856 ?site.}}
+  OPTIONAL {{?dpt wdt:P402 ?osm.}}
+  OPTIONAL {{
+    ?wikipedia schema:about ?dpt;
+               schema:inLanguage 'fr';
+               schema:isPartOf <https://fr.wikipedia.org/>.
+  }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language 'fr'. }}
+}}
+'''
+
+
+@departement.postprocessor()
+def fetch_departement_data_from_wikidata(db):
+    info('Fetching french departement wikidata metadata')
+    results = wiki.data_sparql_query(DEPARTEMENT_SPARQL_QUERY)
+    results = wiki.data_reduce_result(results, 'dpt', 'geonames', 'flag', 'siren')
+    for row in progress(results):
+        insee = row['insee'].lower()
+        db.update_zone(departement.id, insee, db.TODAY,  ops={
+            '$set': {k: v for k, v in {
+                'wikidata': wiki.data_uri_to_id(row['dpt']),
+                'wikipedia': wiki.wikipedia_url_to_id(row['wikipedia']),
+                'dbpedia': wiki.wikipedia_to_dbpedia(row['wikipedia']),
+                'website': row.get('site'),
+                'flag': next((flag for flag in row.get('flag', []) if flag and flag != WIKIDATA_FLAG_OF_FRANCE), None),
+                'blazon': row.get('blazon'),
+                'logo': row.get('logo'),
+                'area': float(row['area']),
+                'population': int(row['population']),
+                'keys.iso2': row.get('iso2', '').lower() or None,
+                'keys.nuts3': row.get('nuts3', '').lower() or None,
+                'keys.osm': row.get('osm'),
+                'keys.fips': row.get('fips', '').lower() or None,
+                # Siren have no end-time but is sequential (keep last)
+                'keys.siren': next((s for s in sorted(row['siren'], reverse=True)), None),
+                'keys.geonames': row['geonames'],
+            }.items() if v is not None}
+        })
+
+
 @departement.postprocessor()  # Needs departement population to be computed
 def compute_region_population(db):
     info('Computing french regions population by aggregation')
@@ -469,83 +574,65 @@ def attach_epci(db):
     success('Computed {0} french EPCI areas', count['areas'])
 
 
-SIREN_RDF_PROPERTIES = (
-    'fr:logo',
-    'fr:blason',
-    'o:area',
-    'o:blazon',
-    'o:flag',
-    'o:emblem',
-)
-
-SPARQL_BY_SIREN = '''{prefixes}
-SELECT ?uri ?siren ?property ?value WHERE {{
-    VALUES ?siren {{ {sirens} }}
-    VALUES ?property {{ {properties} }}
-    ?uri fr:siren ?siren ;
-             ?property ?value.
+EPCI_SPARQL_QUERY = f'''
+SELECT DISTINCT ?epci ?epciLabel ?siren ?population ?area
+                ?flag ?blazon ?logo ?site ?wikipedia ?osm
+WHERE {{
+  VALUES ?siren {{ {{sirens}} }}
+  ?epci wdt:P1616 ?siren.
+  OPTIONAL {{?epci wdt:P2046 ?area.}}
+  OPTIONAL {{?epci wdt:P1082 ?population.}}
+  OPTIONAL {{?epci wdt:P41 ?flag. FILTER (?flag != <{WIKIDATA_FLAG_OF_FRANCE}>)}}
+  OPTIONAL {{?epci wdt:P94 ?blazon.}}
+  OPTIONAL {{?epci wdt:P154 ?logo.}}
+  OPTIONAL {{?epci wdt:P856 ?site.}}
+  OPTIONAL {{?epci wdt:P402 ?osm.}}
+  OPTIONAL {{
+    ?wikipedia schema:about ?epci;
+               schema:inLanguage 'fr';
+               schema:isPartOf <https://fr.wikipedia.org/>.
+  }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language 'fr'. }}
 }}
 '''
 
 
-def reduce_siren_row(row):
-    prop = row['property']['value']
-    for prefix, url in RDF_PREFIXES.items():
-        prop = prop.replace(url, prefix)
-    return {
-        'uri': row['uri']['value'],
-        'siren': row['siren']['value'],
-        'property': prop,
-        'value': row['value']['value'],
-    }
-
-
-def group_by_siren(results):
-    reduced = map(reduce_siren_row, results)
-    ordered = sorted(reduced, key=lambda r: r['siren'])
-    for (siren, uri), rows in groupby(ordered,
-                                      lambda r: (r['siren'], r['uri'])):
-        yield siren, uri, dict(
-            (row['property'], row['value']) for row in rows
-        )
-
-
 @epci.postprocessor()
-def fetch_epci_data_from_dbpedia(db):
-    info('Fetching EPCI DBPedia data from their SIREN')
+def fetch_epci_data_from_wikidata(db):
+    info('Fetching french EPCIs wikidata metadata')
+
     count = Counter()
     # Aggregate and iter over EPCI's SIRENs
     pipeline = [
-        {'$match': {'level': 'fr:epci'}},  # Only takes EPCI
+        {'$match': {'level': epci.id}},  # Only takes EPCI
         {'$group': {'_id': '$code'}},     # Groups SIREN together
     ]
 
     sirens = map(lambda r: r['_id'], db.aggregate_with_progress(pipeline))
 
     for sirens in chunker(sirens, SPARQL_CHUNK_SIZE):
+        query = EPCI_SPARQL_QUERY.replace('{sirens}', ' '.join('"{}"'.format(s) for s in sirens))
+        results = wiki.data_sparql_query(query)
+        results = wiki.data_reduce_result(results, 'siren')
+        for row in results:
+            siren = row['siren']
+            r = db.update_zones(epci.id, siren, db.TODAY,  ops={
+                '$set': {k: v for k, v in {
+                    'wikidata': wiki.data_uri_to_id(row['epci']),
+                    'wikipedia': wiki.wikipedia_url_to_id(row.get('wikipedia')),
+                    'dbpedia': wiki.wikipedia_to_dbpedia(row.get('wikipedia')),
+                    'website': row.get('site'),
+                    'flag': next((flag for flag in row.get('flag', [])), None),
+                    'blazon': row.get('blazon'),
+                    'logo': row.get('logo'),
+                    'area': float(row.get('area', 0)) or None,
+                    'population': int(row.get('population', 0)) or None,
+                    'keys.osm': row.get('osm'),
+                }.items() if v is not None}
+            })
 
-        query = SPARQL_BY_SIREN.format(
-            prefixes=SPARQL_PREFIXES,
-            sirens=' '.join(map(
-                lambda s: '"{0}"^^xsd:integer'.format(s),
-                sirens
-            )),
-            properties=' '.join(SIREN_RDF_PROPERTIES)
-        )
-
-        for siren, uri, data in group_by_siren(execute_sparql_query(query)):
-            # DBPedia URI, logo, flag, blazon are (almost) valid at any time
-            metadata = {'dbpedia': uri, 'wikipedia': dbpedia_to_wikipedia(uri)}
-            if 'fr:logo' in data:
-                metadata['logo'] = data['fr:logo'].replace(' ', '_')
-            if 'o:flag' in data:
-                metadata['flag'] = data['o:flag'].replace(' ', '_')
-            if 'o:blazon' in data:
-                metadata['blazon'] = data['o:blazon'].replace(' ', '_')
-
-            result = db.update_many({'code': siren}, {'$set': metadata})
             count['siren'] += 1
-            count['processed'] += result.modified_count
+            count['processed'] += r.modified_count
 
     success('Updated {0[processed]} EPCIs from DBPedia '
             'using {0[siren]} SIREN numbers', count)

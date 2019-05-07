@@ -1,7 +1,7 @@
-from ..dbpedia import extract_uri
 from ..tools import convert_from
+from ..wiki import wikipedia_to_dbpedia
 
-from .model import canton, collectivite, departement, region, arrondissement, commune, epci, iris, TODAY
+from .model import canton, collectivite, departement, region, arrondissement, commune, epci, iris
 from .model import contours_etalab
 
 
@@ -19,7 +19,7 @@ def extract_french_district(db, polygon):
         'name': props['nom'],
         'area': props['surf_km2'],
         'wikipedia': props['wikipedia'],
-        'dbpedia': extract_uri(props['wikipedia']),
+        'dbpedia': wikipedia_to_dbpedia(props['wikipedia']),
         'parents': ['country:fr', 'country-group:ue', 'country-group:world'],
         'keys': {
             'insee': code,
@@ -72,7 +72,7 @@ def extract_2017_french_departement(db, polygon):
         return
     zone['keys']['nuts3'] = props['nuts3']
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
-    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
 
 @departement.extractor(contours_etalab(2018, 'departements', '100m'),
@@ -102,7 +102,7 @@ def extract_2014_french_region(db, polygon):
         return
     zone['keys']['nuts2'] = props['nuts2']
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
-    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
 
 
@@ -119,7 +119,7 @@ def extract_2016_french_region(db, polygon):
         return
     zone['keys']['nuts2'] = props['nuts2']
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
-    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
 
 
@@ -135,7 +135,7 @@ def extract_2017_french_region(db, polygon):
     if not zone:
         return
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
-    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     zone['wikidata'] = convert_from(props['wikidata'], 'latin-1')
     return zone
 
@@ -162,12 +162,12 @@ def extract_2014_french_commune(db, polygon):
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    zone = db.fetch_zone(commune.id, props['insee'], '2014-01-01')
+    zone = db.zone(commune.id, props['insee'], '2014-01-01')
     if not zone:
         return
     zone['area'] = int(props['surf_m2']) / 10**6
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
-    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
 
 
@@ -184,7 +184,7 @@ def extract_2015_french_commune(db, polygon):
         return
     zone['area'] = int(props['surf_m2']) / 10**6
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
-    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
 
 
@@ -201,7 +201,7 @@ def extract_2016_french_commune(db, polygon):
         return
     zone['area'] = int(props['surf_ha'])
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
-    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
 
 
@@ -218,7 +218,7 @@ def extract_2017_french_commune(db, polygon):
         return
     zone['area'] = int(props['surf_ha'])
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
-    zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
 
 
@@ -256,13 +256,13 @@ def extract_french_arrondissements(db, polygon):
     props = polygon['properties']
     # zone = db.zone(commune.id, props['insee'], '2016-01-01')
     # zone['wikipedia'] = props['wikipedia']
-    # zone['dbpedia'] = extract_uri(zone['wikipedia'])
+    # zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     # zone['area'] = int(props['surf_ha'])
     return {
         'code': props['insee'],
         'name': props['nom'],
         'wikipedia': props['wikipedia'],
-        'dbpedia': extract_uri(props['wikipedia']),
+        'dbpedia': wikipedia_to_dbpedia(props['wikipedia']),
         'area': int(props['surf_ha']),
         'keys': {'insee': props['insee']},
         'validity': {'start': '1942-01-01'},
@@ -292,16 +292,16 @@ def extract_french_canton(db, polygon):
     props = polygon['properties']
     code = props['ref'].lower()
     parents = ['country:fr', 'country-group:ue', 'country-group:world']
-    departement = db.zone(departement.id, props['dep'].lower(), '2015-01-01')
-    if departement:
-        parents.append(departement['_id'])
+    dpt = db.zone(departement.id, props['dep'].lower(), '2015-01-01')
+    if dpt:
+        parents.append(dpt['_id'])
     wikipedia = convert_from(props['wikipedia'], 'latin-1')
     return {
         'code': code,
         'name': convert_from(props['nom'], 'latin-1'),
         'population': props['population'],
         'wikipedia': wikipedia,
-        'dbpedia': extract_uri(wikipedia),
+        'dbpedia': wikipedia_to_dbpedia(wikipedia),
         'parents': parents,
         'keys': {
             'ref': code,
@@ -319,9 +319,9 @@ def extract_iris(db, polygon):
     props = polygon['properties']
     code = props['DCOMIRIS']
     parents = ['country:fr', 'country-group:ue', 'country-group:world']
-    commune = db.fetch_zone('fr:commune', props['DEPCOM'], after='2013-01-01')
-    if commune:
-        parents.append(commune['_id'])
+    com = db.zone(commune.id, props['DEPCOM'], '2013-01-01')
+    if com:
+        parents.append(com['_id'])
     name = props['NOM_IRIS'].title()
     return {
         'code': code,
