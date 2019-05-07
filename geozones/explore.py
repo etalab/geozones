@@ -32,18 +32,9 @@ def levels_api():
     return jsonify([level_to_dict(l) for l in root.traverse()])
 
 
-@app.route('/levels/<path:level_id>')
-def level_api(level_id):
-    db = current_app.db
-    if level_id in TIMED_LEVELS:
-        data = db.fetch_zones(level_id, after='2017-01-01')
-    else:
-        data = db.find({'level': level_id})
-    return stream(data)
-
-
+@app.route('/levels/<string:level>')
 @app.route('/levels/<string:level>@<string:at>')
-def level_at_api(level, at):
+def level_at_api(level, at=None):
     db = current_app.db
     data = db.level(level, at)
     return stream(data)
