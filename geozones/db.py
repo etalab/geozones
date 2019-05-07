@@ -1,5 +1,3 @@
-import click
-
 from datetime import date
 
 from pymongo import MongoClient, ASCENDING
@@ -13,6 +11,7 @@ TODAY = date.today().isoformat()
 
 
 class DB(Collection):
+    TODAY = TODAY
 
     def __init__(self, url):
         client = MongoClient(url)
@@ -44,8 +43,10 @@ class DB(Collection):
 
             return e._OperationFailure__details['nInserted']
 
-    def _valid_at(self, at):
+    def _valid_at(self, at=None):
         '''Build a validity query for a given date'''
+        if at is None:
+            return {}
         if isinstance(at, date):
             at = date.isoformat()
         return {'$or': [
@@ -60,20 +61,25 @@ class DB(Collection):
             {'validity.start': None, 'validity.end': {'$gte': at}},
         ]}
 
-    def zone(self, level, code, at=TODAY, **kwargs):
+    def zone(self, level, code, at=None, **kwargs):
         '''Get a Zone given its level, its code and a date'''
         query = self._valid_at(at)
         query.update(level=level, code=code, **kwargs)
         return self.find_one(query)
 
-    def update_zone(self, level, code, at, ops):
+    def update_zone(self, level, code, at=None, ops=None):
         '''Update a Zone given its level, its code and a date'''
         query = self._valid_at(at)
         query.update(level=level, code=code)
         return self.find_one_and_update(query, ops)
 
+    def update_zones(self, level, code, at=None, ops=None):
+        '''Update a Zone given its level, its code and a date'''
+        query = self._valid_at(at)
+        query.update(level=level, code=code)
+        return self.update_many(query, ops)
 
-    def level(self, level, at=TODAY, **kwargs):
+    def level(self, level, at=None, **kwargs):
         '''Get all Zones for a given level and a date'''
         query = self._valid_at(at)
         query.update(level=level, **kwargs)
