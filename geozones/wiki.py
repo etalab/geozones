@@ -11,6 +11,7 @@ from .tools import error
 
 RE_WIKIPEDIA = re.compile(r'https?://(?P<namespace>\w+)?\.?wikipedia\.org/wiki/(?P<path>.+)$')
 RE_DBPEDIA = re.compile(r'https?://(?P<namespace>\w+)?\.?dbpedia\.org/resource/(?P<path>.+)$')
+RE_MEDIA_COMMONS = re.compile(r'https?://commons\.wikimedia\.org/wiki/Special:FilePath/(?P<path>.+)$')
 
 WIKIDATA_SPARQL = 'https://query.wikidata.org/sparql'
 WD = 'http://www.wikidata.org/entity/'
@@ -62,6 +63,13 @@ def dbpedia_to_wikipedia(uri):
         return ':'.join((namespace, path))
     else:
         return path
+
+
+def media_url_to_path(url):
+    '''Extract path from a wikimedia commons URL'''
+    if not url:
+        return
+    return RE_MEDIA_COMMONS.sub('\g<path>', url)
 
 
 def data_uri_to_id(uri):

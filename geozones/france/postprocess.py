@@ -189,9 +189,9 @@ def fetch_communes_data_from_wikidata(db):
                     'wikipedia': wiki.wikipedia_url_to_id(row.get('wikipedia')),
                     'dbpedia': wiki.wikipedia_to_dbpedia(row.get('wikipedia')),
                     'website': row.get('site'),
-                    'flag': row.get('flag'),
-                    'blazon': row.get('blazon'),
-                    'logo': row.get('logo'),
+                    'flag': wiki.media_url_to_path(row.get('flag')),
+                    'blazon': wiki.media_url_to_path(row.get('blazon')),
+                    'logo': wiki.media_url_to_path(row.get('logo')),
                     'area': float(row.get('area', 0)) or None,
                     'population': int(row.get('population', 0)) or None,
                     'keys.osm': row.get('osm'),
@@ -293,7 +293,7 @@ WHERE {{
 def fetch_region_data_from_wikidata(db):
     info('Fetching french regions wikidata metadata')
     results = wiki.data_sparql_query(REGIONS_SPARQL_QUERY)
-    results = wiki.data_reduce_result(results, 'region', 'geonames', 'flag', 'siren')
+    results = wiki.data_reduce_result(results, 'region', 'geonames', 'siren')
     for row in progress(results):
         insee = row['insee'].lower()
         db.update_zone(region.id, insee, db.TODAY,  ops={
@@ -302,9 +302,9 @@ def fetch_region_data_from_wikidata(db):
                 'wikipedia': wiki.wikipedia_url_to_id(row['wikipedia']),
                 'dbpedia': wiki.wikipedia_to_dbpedia(row['wikipedia']),
                 'website': row.get('site'),
-                'flag': next((flag for flag in row.get('flag', []) if flag and flag != WIKIDATA_FLAG_OF_FRANCE), None),
-                'blazon': row.get('blazon'),
-                'logo': row.get('logo'),
+                'flag': wiki.media_url_to_path(row.get('flag')),
+                'blazon': wiki.media_url_to_path(row.get('blazon')),
+                'logo': wiki.media_url_to_path(row.get('logo')),
                 'area': float(row['area']),
                 'population': int(row['population']),
                 'keys.iso2': row.get('iso2', '').lower() or None,
@@ -458,7 +458,7 @@ WHERE {{
 def fetch_departement_data_from_wikidata(db):
     info('Fetching french departement wikidata metadata')
     results = wiki.data_sparql_query(DEPARTEMENT_SPARQL_QUERY)
-    results = wiki.data_reduce_result(results, 'dpt', 'geonames', 'flag', 'siren')
+    results = wiki.data_reduce_result(results, 'dpt', 'geonames', 'siren')
     for row in progress(results):
         insee = row['insee'].lower()
         db.update_zone(departement.id, insee, db.TODAY,  ops={
@@ -467,9 +467,9 @@ def fetch_departement_data_from_wikidata(db):
                 'wikipedia': wiki.wikipedia_url_to_id(row['wikipedia']),
                 'dbpedia': wiki.wikipedia_to_dbpedia(row['wikipedia']),
                 'website': row.get('site'),
-                'flag': next((flag for flag in row.get('flag', []) if flag and flag != WIKIDATA_FLAG_OF_FRANCE), None),
-                'blazon': row.get('blazon'),
-                'logo': row.get('logo'),
+                'flag': wiki.media_url_to_path(row.get('flag')),
+                'blazon': wiki.media_url_to_path(row.get('blazon')),
+                'logo': wiki.media_url_to_path(row.get('logo')),
                 'area': float(row['area']),
                 'population': int(row['population']),
                 'keys.iso2': row.get('iso2', '').lower() or None,
@@ -600,9 +600,9 @@ def fetch_epci_data_from_wikidata(db):
                     'wikipedia': wiki.wikipedia_url_to_id(row.get('wikipedia')),
                     'dbpedia': wiki.wikipedia_to_dbpedia(row.get('wikipedia')),
                     'website': row.get('site'),
-                    'flag': next((flag for flag in row.get('flag', [])), None),
-                    'blazon': row.get('blazon'),
-                    'logo': row.get('logo'),
+                    'flag': wiki.media_url_to_path(row.get('flag')),
+                    'blazon': wiki.media_url_to_path(row.get('blazon')),
+                    'logo': wiki.media_url_to_path(row.get('logo')),
                     'area': float(row.get('area', 0)) or None,
                     'population': int(row.get('population', 0)) or None,
                     'keys.osm': row.get('osm'),

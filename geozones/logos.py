@@ -1,13 +1,11 @@
-import mimetypes
 import os
 import tarfile
 
-import click
 import requests
 
-from .tools import info, success, unicodify, progress, extract_meta_from_headers
+from .tools import info, success, unicodify, progress
 
-DBPEDIA_MEDIA_URL = 'https://commons.wikimedia.org/wiki/Special:FilePath/'
+WIKIMEDIA_COMMONS_URL = 'https://commons.wikimedia.org/wiki/Special:FilePath/'
 LOGOS_FOLDER_PATH = 'logos'
 LOGOS_FILENAME = 'geologos.tar.xz'
 
@@ -50,7 +48,7 @@ def fetch_logos(zones, dist_dir):
             logfile.flush()
             continue
 
-        url = DBPEDIA_MEDIA_URL + unicodify(filename)
+        url = WIKIMEDIA_COMMONS_URL + unicodify(filename)
         r = requests.get(url, stream=True, headers=HEADERS)
         if r.status_code != 200:
             logfile.write('{0} : {1}\n'.format(url, r.status_code))
