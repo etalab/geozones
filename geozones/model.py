@@ -6,6 +6,7 @@ from os.path import join, basename
 
 from fiona.crs import to_string
 from shapely.geometry import shape, MultiPolygon
+from shapely.validation import explain_validity
 
 from .loaders import load
 from .tools import warning, error, info, success, progress
@@ -162,6 +163,9 @@ class Level(object):
                             start = zone['validity']['start']
                             zone_id = '@'.join((zone_id, start))
 
+                    if not geom.is_valid:
+                        warning('Invalid geometry for "{0}": {1}', zone_id, explain_validity(geom))
+
                     zone.update(_id=zone_id, level=self.id)
                     db.find_one_and_replace(
                         {'_id': zone_id}, zone, upsert=True)
@@ -188,12 +192,13 @@ class Level(object):
         return processed
 
     def build_aggregate(self, code, name, zones, properties, db):
+        geoid = ':'.join((self.id, code))
         geoms = []
         populations = []
         areas = []
         if callable(zones):
             zones = [zone['_id'] for zone in zones(db)]
-        for zoneid in zones:
+        for zoneid in progress(zones, 'Building {}'.format(geoid)):
             # Resolve wildcard
             if zoneid.endswith(':*'):
                 level = zoneid.replace(':*', '')
@@ -234,7 +239,7 @@ class Level(object):
             warning('No geometry for {0}', zones)
 
         data = {
-            '_id': ':'.join((self.id, code)),
+            '_id': geoid,
             'code': code,
             'level': self.id,
             'name': name,
