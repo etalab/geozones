@@ -12,7 +12,7 @@ from zipfile import ZipFile
 import click
 
 from shapely.geometry import shape, MultiPolygon
-from shapely.ops import cascaded_union
+from shapely.ops import unary_union
 
 
 def _secho(prefix=None, verbose=False, **style):
@@ -135,7 +135,7 @@ def geom_to_multipolygon(geom):
 
 def aggregate_multipolygons(multipolygons):
     '''Aggregate a list of multipolygons into a single multipolygon'''
-    aggregated = cascaded_union(multipolygons)
+    aggregated = unary_union(multipolygons)
     if aggregated.geom_type == 'Polygon':
         aggregated = MultiPolygon([aggregated])
     return aggregated
