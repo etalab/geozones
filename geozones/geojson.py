@@ -16,10 +16,12 @@ def zone_to_feature(zone, keys=None):
         'level': zone['level'],
         'code': zone['code'],
         'name': unicodify(zone['name']),
+        'capital': zone.get('capital'),
         'wikipedia': unicodify(zone.get('wikipedia', '')) or None,
         'dbpedia': unicodify(zone.get('dbpedia', '')) or None,
         'population': int(zone.get('population', 0)) or None,
         'area': float(zone.get('area', 0)) or None,
+        'website': zone.get('website'),
         'flag': unicodify(zone.get('flag', '')) or None,
         'blazon': unicodify(zone.get('blazon', '')) or None,
         'keys': zone.get('keys', {}),
@@ -29,7 +31,7 @@ def zone_to_feature(zone, keys=None):
         'successors': zone.get('successors', '') or None,
         # Properties on added for display and workaroung mapgl bugs
         'id': zone['_id'],
-        '_color': colorize(zone),
+        'color': colorize(zone),
     }
     if keys is not None:
         for unwanted_key in set(properties.keys()) - set(keys):

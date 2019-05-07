@@ -55,7 +55,7 @@ export default {
             "fill-opacity": 0.4,
             'fill-color': {
               type: 'identity',
-              property: '_color',
+              property: 'color',
             },
             'fill-outline-color': 'rgba(200, 100, 240, 1)'
           },
