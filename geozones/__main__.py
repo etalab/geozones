@@ -33,10 +33,14 @@ def downloadable_urls(ctx):
     return set([url for lst in urls for url in lst])
 
 
+def merge_exclusions(ctx, exclude):
+    return list(set(exclude or []) | set(ctx.obj['exclude'] or []))
+
+
 @click.group(chain=True, context_settings=CONTEXT_SETTINGS)
 @click.option('-d', '--drop', is_flag=True)
 @click.option('-l', '--level', multiple=True, help='Limits to given levels')
-@click.option('-e', '--exclude', multiple=True, help='Exclude some levels')
+@click.option('-e', '--exclude', multiple=True, help='Exclude some levels or some functions')
 @click.option('-m', '--mongo', help='MongoDB database', default='localhost')
 @click.option('-H', '--home', help='Specify GeoZones working home')
 @click.pass_context
@@ -47,6 +51,7 @@ def cli(ctx, drop, level, exclude, mongo, home):
     else:
         home = os.getcwd()
     ctx.obj['home'] = home
+    ctx.obj['exclude'] = exclude
 
     levels = []
     for l in root.traverse():
@@ -134,6 +139,7 @@ def preprocess(ctx, only, exclude):
     '''
     title(textwrap.dedent(preprocess.__doc__))
     zones = ctx.obj['db']
+    exclude = merge_exclusions(ctx, exclude)
 
     for level in ctx.obj['levels']:
         level.preprocess(DL_DIR, zones, only, exclude)
@@ -155,6 +161,7 @@ def load(ctx, only, exclude):
     the duration to 10 minutes.
     '''
     title(textwrap.dedent(load.__doc__))
+    exclude = merge_exclusions(ctx, exclude)
     zones = ctx.obj['db']
     total = 0
 
@@ -201,6 +208,7 @@ def postprocess(ctx, only, exclude):
     '''
     title(textwrap.dedent(postprocess.__doc__))
     zones = ctx.obj['db']
+    exclude = merge_exclusions(ctx, exclude)
 
     for level in ctx.obj['levels']:
         level.postprocess(DL_DIR, zones, only, exclude)
