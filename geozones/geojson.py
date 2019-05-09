@@ -17,8 +17,9 @@ def zone_to_feature(zone, keys=None):
         'code': zone['code'],
         'name': unicodify(zone['name']),
         'capital': zone.get('capital'),
+        'wikidata': zone.get('wikidata'),
         'wikipedia': unicodify(zone.get('wikipedia', '')) or None,
-        'dbpedia': unicodify(zone.get('dbpedia', '')) or None,
+        # 'dbpedia': unicodify(zone.get('dbpedia', '')) or None,
         'population': int(zone.get('population', 0)) or None,
         'area': float(zone.get('area', 0)) or None,
         'website': zone.get('website'),
@@ -29,7 +30,7 @@ def zone_to_feature(zone, keys=None):
         'parents': zone.get('parents', '') or None,
         'ancestors': zone.get('ancestors', '') or None,
         'successors': zone.get('successors', '') or None,
-        # Properties on added for display and workaroung mapgl bugs
+        # Properties added for display and workaroung mapgl bugs
         'id': zone['_id'],
         'color': colorize(zone),
     }
