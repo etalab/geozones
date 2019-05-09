@@ -1,7 +1,7 @@
 from ..tools import success, progress
 from .model import departement, epci, commune, collectivite, region
 
-DEBUT = '1942-01-01'
+DEBUT = '1943-01-01'
 GEOHISTO_EOT = '9999-12-31'
 GEOHISTO_BASE = 'https://github.com/etalab/geohisto/raw/master/'
 
