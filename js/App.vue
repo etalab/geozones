@@ -1,5 +1,6 @@
 <template>
 <main>
+  <b-loading :active="loading"></b-loading>
   <navbar></navbar>
   <world-map></world-map>
   <aside class="right-sidebar" v-if="zone">
@@ -9,7 +10,7 @@
 </template>
 
 <script>
-import {mapGetters, mapActions} from 'vuex'
+import {mapGetters, mapActions, mapState} from 'vuex'
 import Navbar from './Navbar.vue'
 import WorldMap from './WorldMap.vue'
 import ZoneDetails from './ZoneDetails.vue'
@@ -21,11 +22,22 @@ export default {
     this.fetchLevels()
   },
   computed: {
-    ...mapGetters(['zone'])
+    ...mapState(['zone', 'error']),
+    ...mapGetters(['loading'])
   },
   methods: {
     ...mapActions(['fetchLevels'])
   },
+  watch: {
+    error(error) {
+      this.$toast.open({
+          duration: 5000,
+          message: error,
+          position: 'is-bottom',
+          type: 'is-danger'
+      })
+    }
+  }
 }
 </script>
 

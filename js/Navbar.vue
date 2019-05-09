@@ -42,7 +42,7 @@
 </template>
 
 <script>
-import {mapGetters, mapActions} from 'vuex'
+import {mapState, mapActions} from 'vuex'
 
 export default {
   computed: {
@@ -64,7 +64,7 @@ export default {
         this.$refs.calendarDropdown.toggle()
       }
     },
-    ...mapGetters(['levels', 'homepage', 'github', 'showNav']),
+    ...mapState(['levels', 'homepage', 'github', 'showNav']),
   },
   methods: {
     ...mapActions(['setLevel', 'setDate', 'toggleNav'])

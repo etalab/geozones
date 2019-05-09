@@ -6,19 +6,32 @@ import {isodate} from './helpers'
 Vue.use(Vuex)
 
 const debug = process.env.NODE_ENV !== 'production'
+const emitter = new Vue()
 
 async function getData(path) {
     const response = await fetch(`/${path}`)
+    if (!response.ok) {
+      let msg = response.statusText
+      try {
+        const data = await response.json()
+        msg = data.message || data.msg || data.text || msg
+      } finally {
+        throw Error(msg)
+      }
+    }
     return await response.json()
 }
 
 const state = {
   date: new Date(),
+  errors: [],
+  error: undefined,
   geojson: undefined,
   homepage: 'https://github.com/etalab/geozones',
   level: undefined,
   levels: [],
-  loading: false,
+  dataLoading: false,
+  mapLoading: true,
   mapConfig: {
     center: [2.4, 42],
     style: 'mapbox://styles/mapbox/light-v9',
@@ -30,22 +43,16 @@ const state = {
 }
 
 const getters = {
-  date: state => state.date,
-  geojson: state => state.geojson,
-  github: state => state.homepage,
-  homepage: state => state.homepage,
-  level: state => state.level,
-  levels: state => state.levels,
-  levelUrl: state => state.level ? `/levels/${state.level.id}@${isodate(state.date)}` : undefined,
-  loading: state => state.loading,
-  mapConfig: state => state.mapConfig,
-  showNav: state => state.showNav,
-  zone: state => state.zone,
+  loading: state => state.mapLoading || state.dataLoading
 };
 
 const mutations = {
   date(state, date) {
     state.date = date
+  },
+  error(state, error) {
+    state.errors.push(error)
+    state.error = error
   },
   geojson(state, value) {
     state.geojson = value
@@ -56,8 +63,11 @@ const mutations = {
   levels(state, value) {
     state.levels = value
   },
-  loading(state, value) {
-    state.loading = value
+  mapLoading(state, value) {
+    state.mapLoading = value
+  },
+  dataLoading(state, value) {
+    state.dataLoading = value
   },
   showNav(state, value) {
     state.showNav = value
@@ -68,14 +78,14 @@ const mutations = {
 }
 
 const actions = {
-  async fetchLevels({ commit }) {
+  async fetchLevels({ commit, dispatch }) {
     try {
-      commit('loading', true)
+      commit('dataLoading', true)
       const response = await getData('levels')
       commit('levels', response)
-      commit('loading', false)
+      commit('dataLoading', false)
     } catch (error) {
-      console.error(error)
+      await dispatch('throwError', error)
     }
   },
   async setDate({ commit }, date) {
@@ -84,17 +94,38 @@ const actions = {
   async setLevel({ commit }, level) {
     commit('level', level)
   },
-  async setZone({ commit }, zone) {
+  async setZone({ commit, dispatch }, zone) {
     if (zone.hasOwnProperty('properties')) {
       // It's a geojson object
       commit('zone', zone)
     } else {
       // It's a GeoID
-      commit('loading', true)
-      const response = await getData(`zones/${zone}`)
-      commit('zone', response)
-      commit('loading', false)
+      commit('dataLoading', true)
+      try {
+        const response = await getData(`zones/${zone}`)
+        commit('zone', response)
+      } catch(error) {
+        await dispatch('throwError', error)
+      } finally {
+        commit('dataLoading', false)
+      }
     }
+  },
+  async throwError({ commit }, error) {
+    let msg = 'An unknown error occured'
+    switch (typeof error) {
+      case 'string':
+        msg = error
+        console.error(msg)
+        break
+      case 'object':
+        msg = error.message || error.msg || error.hasOwnProperty('toString') ? error.toString() : msg
+        console.error(error)
+        break
+      default:
+        console.error(error)
+    }
+    commit('error', msg)
   },
   async toggleNav({commit, getters}) {
     commit('showNav', !getters.showNav)
