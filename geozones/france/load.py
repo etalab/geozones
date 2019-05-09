@@ -1,4 +1,4 @@
-from ..tools import convert_from
+from ..tools import convert_from, warning
 from ..wiki import wikipedia_to_dbpedia
 
 from .model import canton, collectivite, departement, region, arrondissement, commune, epci, iris
@@ -79,14 +79,14 @@ def extract_2017_french_departement(db, polygon):
                        filename='departements-100m-2018.geojson.gz')
 def extract_2018_french_departements(db, polygon):
     props = polygon['properties']
-    return db.zone(departement.id, props['code'], '2018-01-01')
+    return db.zone(departement.id, props['code'].lower(), '2018-01-01')
 
 
 @departement.extractor(contours_etalab(2019, 'departements', '100m'),
                   filename='departements-100m-2019.geojson.gz')
 def extract_2019_french_departements(db, polygon):
     props = polygon['properties']
-    return db.zone(departement.id, props['code'], '2019-01-01')
+    return db.zone(departement.id, props['code'].lower(), '2019-01-01')
 
 
 @region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')  # NOQA
@@ -199,7 +199,7 @@ def extract_2016_french_commune(db, polygon):
     zone = db.zone(commune.id, props['insee'], '2016-01-01')
     if not zone:
         return
-    zone['area'] = int(props['surf_ha'])
+    zone['area'] = int(props['surf_ha']) * .01
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
     zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
@@ -213,10 +213,12 @@ def extract_2017_french_commune(db, polygon):
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    zone = db.zone(commune.id, props['insee'], '2017-01-01')
+    insee = props['insee'].lower()
+    zone = db.zone(commune.id, insee, '2017-01-01')
     if not zone:
+        warning('No match for {0}:{1}@{2}', commune.id, insee, '2017-01-01')
         return
-    zone['area'] = int(props['surf_ha'])
+    zone['area'] = int(props['surf_ha']) * .01
     zone['wikipedia'] = convert_from(props['wikipedia'], 'latin-1')
     zone['dbpedia'] = wikipedia_to_dbpedia(zone['wikipedia'])
     return zone
@@ -231,7 +233,11 @@ def extract_2018_french_commune(db, polygon):
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    return db.zone(commune.id, props['code'], '2018-01-01')
+    insee = props['code'].lower()
+    zone = db.zone(commune.id, insee, '2018-01-01')
+    if not zone:
+        warning('No match for {0}:{1}@{2}', commune.id, props['code'], '2018-01-01')
+    return zone
 
 
 @commune.extractor('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2019/geojson/communes-100m.geojson.gz',
@@ -243,7 +249,11 @@ def extract_2019_french_commune(db, polygon):
     http://www.data.gouv.fr/datasets/decoupage-administratif-communal-francais-issu-d-openstreetmap/
     '''
     props = polygon['properties']
-    return db.zone(commune.id, props['code'], '2019-01-01')
+    insee = props['code'].lower()
+    zone = db.zone(commune.id, insee, '2019-01-01')
+    if not zone:
+        warning('No match for {0}:{1}@{2}', commune.id, props['code'], '2019-01-01')
+    return zone
 
 
 @commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-municipaux-20160128-shp.zip')  # NOQA
@@ -263,7 +273,7 @@ def extract_french_arrondissements(db, polygon):
         'name': props['nom'],
         'wikipedia': props['wikipedia'],
         'dbpedia': wikipedia_to_dbpedia(props['wikipedia']),
-        'area': int(props['surf_ha']),
+        'area': int(props['surf_ha']) * .01,
         'keys': {'insee': props['insee']},
         'validity': {'start': '1942-01-01'},
     }
