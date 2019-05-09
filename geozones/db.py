@@ -54,11 +54,11 @@ class DB(Collection):
             {'validity': None},
             {'validity.start': None, 'validity.end': None},
             # Ended zones with matching validity boundings
-            {'validity.start': {'$lte': at}, 'validity.end': {'$gte': at}},
+            {'validity.start': {'$lte': at}, 'validity.end': {'$gt': at}},
             # Not ended zones with matching validity start bounding
             {'validity.start': {'$lte': at}, 'validity.end': None},
             # Ended zones with undefined start and matching validity end bounding
-            {'validity.start': None, 'validity.end': {'$gte': at}},
+            {'validity.start': None, 'validity.end': {'$gt': at}},
         ]}
 
     def zone(self, level, code, at=None, **kwargs):
