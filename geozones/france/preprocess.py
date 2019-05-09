@@ -19,22 +19,42 @@ def geohisto_list(row, field):
     return value.split(';')
 
 
-def _link(row, field):
-    value = row.get(field)
-    if not value:
+def histo_id(id):
+    return id.replace('COM-', 'fr:commune:')
+
+
+def _ancestors(row, pivots):
+    if 'predecesseur' in row:
+        return [histo_id(row['predecesseur'])]
+    ids = row.get('membres', [])
+    ancestors = (pivots.get(id, {}).get('predecesseur') for id in ids)
+    return [
+        histo_id(ancestor) for ancestor in ancestors
+        if ancestor and ancestor[:4] not in ('COMA', 'COMD')
+    ]
+
+
+def _successors(row, pivots):
+    successor = row.get('successeur')
+    if not successor:
         return []
-    return [value.replace('COM-', 'fr:commune')]
+    if successor.startswith('COM-'):
+        return [histo_id(successor)]
+    comp = pivots.get(successor)
+    return [histo_id(comp['pole'])] if comp else []
 
 
 @commune.preprocessor('https://github.com/etalab/decoupage-administratif/releases/download/v0.5.0/historique-communes.json')
 def load_communes_history(db, data):
     '''Load french communes from history'''
+    rows = list(data)
+    pivots = {row['id']: row for row in rows if row['type'] in ('COMP', 'COMA', 'COMD')}
+
     count = db.safe_bulk_insert({
         '_id': 'fr:commune:{0}@{1}'.format(row['code'].lower(), row.get('dateDebut', DEBUT)),
         'code': row['code'].lower(),
         'level': commune.id,
         'name': row['nom'],
-        # 'population': int(row['population']),
         'parents': [
             'country:fr', 'country-group:ue', 'country-group:world'
         ],
@@ -42,13 +62,13 @@ def load_communes_history(db, data):
             'insee': row['code'].lower(),
             'histo': row['id'],
         },
-        'successors': _link(row, 'successeur'),
-        'ancestors': _link(row, 'predecesseur'),
+        'successors': _successors(row, pivots),
+        'ancestors': _ancestors(row, pivots),
         'validity': {
             'start': row.get('dateDebut'),
             'end': row.get('dateFin'),
         }
-    } for row in progress(data, 'Loading french communes history') if row['type'] == 'COM')
+    } for row in progress(rows, 'Loading french communes history') if row['type'] == 'COM')
     success('Loaded {} french communes(s)', count)
 
 
