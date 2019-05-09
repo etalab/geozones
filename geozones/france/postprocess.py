@@ -7,6 +7,7 @@ from ..tools import aggregate_multipolygons, geom_to_multipolygon, chunker
 from .model import canton, departement, epci, commune, arrondissement, iris, region, collectivite
 from .model import droms, departements_metropole
 from .model import PARIS_DISTRICTS, LYON_DISTRICTS, MARSEILLE_DISTRICTS, WIKIDATA_FLAG_OF_FRANCE
+from .model import COMMUNES_START
 
 '''
 WARNING:
@@ -89,7 +90,7 @@ def attach_current_french_communes_parents(db, data):
 @commune.postprocessor()
 def commune_with_districts(db):
     info('Attaching Paris town districts')
-    paris = db.find_one({'_id': 'fr:commune:75056@1942-01-01'})
+    paris = db.find_one({'_id': 'fr:commune:75056@{0}'.format(COMMUNES_START)})
     parents = paris['parents']
     parents.append(paris['_id'])
     result = db.update_many(
@@ -98,7 +99,7 @@ def commune_with_districts(db):
     success('Attached {0} districts to Paris', result.modified_count)
 
     info('Attaching Marseille town districts')
-    marseille = db.find_one({'_id': 'fr:commune:13055@1942-01-01'})
+    marseille = db.find_one({'_id': 'fr:commune:13055@{0}'.format(COMMUNES_START)})
     parents = marseille['parents']
     parents.append(marseille['_id'])
     result = db.update_many(
@@ -107,7 +108,7 @@ def commune_with_districts(db):
     success('Attached {0} districts to Marseille', result.modified_count)
 
     info('Attaching Lyon town districts')
-    lyon = db.find_one({'_id': 'fr:commune:69123@1942-01-01'})
+    lyon = db.find_one({'_id': 'fr:commune:69123@{0}'.format(COMMUNES_START)})
     parents = lyon['parents']
     parents.append(lyon['_id'])
     result = db.update_many(

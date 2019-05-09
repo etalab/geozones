@@ -13,10 +13,12 @@ commune = Level('fr:commune', _('French town'), 80, arrondissement, epci)
 canton = Level('fr:canton', _('French canton'), 98, departement)
 iris = Level('fr:iris', _('Iris (Insee districts)'), 98, commune)
 
+COMMUNES_START = '1943-01-01'
+
 # Cities with districts
-PARIS_DISTRICTS = ['fr:commune:751{0:0>2}@1942-01-01'.format(i) for i in range(1, 21)]
-MARSEILLE_DISTRICTS = ['fr:commune:132{0:0>2}@1942-01-01'.format(i) for i in range(1, 17)]
-LYON_DISTRICTS = ['fr:commune:6938{0}@1942-01-01'.format(i) for i in range(1, 9)]
+PARIS_DISTRICTS = ['fr:commune:751{0:0>2}@{1}'.format(i, COMMUNES_START) for i in range(1, 21)]
+MARSEILLE_DISTRICTS = ['fr:commune:132{0:0>2}@{1}'.format(i, COMMUNES_START) for i in range(1, 17)]
+LYON_DISTRICTS = ['fr:commune:6938{0}@{1}'.format(i, COMMUNES_START) for i in range(1, 9)]
 
 CONTOURS_ETALAB = ('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/'
                    '{year}/geojson/{level}-{precision}.geojson.gz')

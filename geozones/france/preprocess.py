@@ -1,7 +1,6 @@
 from ..tools import success, progress
-from .model import departement, epci, commune, collectivite, region
+from .model import departement, epci, commune, collectivite, region, COMMUNES_START
 
-DEBUT = '1943-01-01'
 GEOHISTO_EOT = '9999-12-31'
 GEOHISTO_BASE = 'https://github.com/etalab/geohisto/raw/master/'
 
@@ -51,7 +50,7 @@ def load_communes_history(db, data):
     pivots = {row['id']: row for row in rows if row['type'] in ('COMP', 'COMA', 'COMD')}
 
     count = db.safe_bulk_insert({
-        '_id': 'fr:commune:{0}@{1}'.format(row['code'].lower(), row.get('dateDebut', DEBUT)),
+        '_id': 'fr:commune:{0}@{1}'.format(row['code'].lower(), row.get('dateDebut', COMMUNES_START)),
         'code': row['code'].lower(),
         'level': commune.id,
         'name': row['nom'],
