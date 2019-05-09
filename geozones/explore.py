@@ -1,4 +1,4 @@
-from flask import Flask, render_template, Response, json, current_app, abort
+from flask import Flask, render_template, Response, current_app, abort, jsonify
 
 from geozones import geojson
 from geozones.model import root
@@ -6,12 +6,22 @@ from geozones.model import root
 app = Flask(__name__)
 
 
-def jsonify(data):
-    return Response(json.dumps(data), mimetype='application/json')
+# def jsonify(data):
+#     return Response(json.dumps(data), mimetype='application/json')
 
 
 def stream(data):
     return Response(geojson.stream_zones(data), content_type='application/json')
+
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify(error=404, message=str(e)), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify(error=500, message=str(e)), 500
 
 
 @app.route('/')
