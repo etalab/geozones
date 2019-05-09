@@ -205,33 +205,6 @@ def fetch_communes_data_from_wikidata(db):
     success('Fetched {0} french communes metadata from wikidata', processed)
 
 
-@commune.postprocessor()
-def compute_commune_with_districts_population(db):
-    info('Computing Paris town districts population')
-    districts = db.find({'_id': {'$in': PARIS_DISTRICTS}})
-    population = sum(district.get('population', 0) for district in districts)
-    db.find_one_and_update(
-        {'_id': 'fr:commune:75056@1942-01-01'},
-        {'$set': {'population': population}})
-    success('Computed population for Paris')
-
-    info('Computing Marseille town districts population')
-    districts = db.find({'_id': {'$in': MARSEILLE_DISTRICTS}})
-    population = sum(district.get('population', 0) for district in districts)
-    db.find_one_and_update(
-        {'_id': 'fr:commune:13055@1942-01-01'},
-        {'$set': {'population': population}})
-    success('Computed population for Marseille')
-
-    info('Computing Lyon town districts population')
-    districts = db.find({'_id': {'$in': LYON_DISTRICTS}})
-    population = sum(district.get('population', 0) for district in districts)
-    db.find_one_and_update(
-        {'_id': 'fr:commune:69123@1942-01-01'},
-        {'$set': {'population': population}})
-    success('Computed population for Lyon')
-
-
 # Need to be the last processed
 @commune.postprocessor()
 def attach_counties_to_subcountries(db):
