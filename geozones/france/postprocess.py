@@ -39,7 +39,7 @@ WHERE {
 
   SERVICE wikibase:label { bd:serviceParam wikibase:language 'fr'. }
 }
-'''
+'''  # NOQA: E501
 
 
 @country_subset.postprocessor()

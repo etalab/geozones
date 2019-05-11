@@ -9,10 +9,11 @@ canton = Level('lu:canton', _('Luxembourguish canton'), 60, district)
 commune = Level('lu:commune', _('Luxembourguish commune'), 80, canton)
 
 # See: https://data.public.lu/fr/datasets/limites-administratives-du-grand-duche-de-luxembourg/
-GEOJSON = 'https://download.data.public.lu/resources/limites-administratives-du-grand-duche-de-luxembourg/20180913-143737/lu-limites-administratives-2018.geojson'
+GEOJSON = ('https://download.data.public.lu/resources/limites-administratives-du-grand-duche-de-luxembourg/'
+           '20180913-143737/lu-limites-administratives-2018.geojson')
 
 
-@district.extractor(GEOJSON, layer='districts')  # NOQA
+@district.extractor(GEOJSON, layer='districts')
 def extract_lu_district(db, polygon):
     '''
     Extract a luxembourgish district informations from a MultiPolygon.
@@ -86,7 +87,7 @@ def fetch_districts_data_from_wikidata(db):
         })
 
 
-@canton.extractor(GEOJSON, layer='cantons')  # NOQA
+@canton.extractor(GEOJSON, layer='cantons')
 def extract_lu_canton(db, polygon):
     '''
     Extract a luxembourgish canton informations from a MultiPolygon.
@@ -163,7 +164,8 @@ def fetch_cantons_data_from_wikidata(db):
             }.items() if v is not None}
         })
 
-@commune.extractor(GEOJSON, layer='communes')  # NOQA
+
+@commune.extractor(GEOJSON, layer='communes')
 def extract_lu_commune(db, polygon):
     '''
     Extract a luxembourgish commune informations from a MultiPolygon.

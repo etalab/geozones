@@ -68,8 +68,7 @@ def cli(ctx, drop, level, exclude, mongo, home):
         with ok('Droping existing collection'):
             db.drop()
 
-    with ok('Initializing collection'):
-        db.initialize()
+    db.initialize()
 
 
 def _download(url, dest):

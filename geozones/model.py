@@ -35,7 +35,6 @@ class Level(object):
     def __str__(self):
         return self.id
 
-
     def preprocessor(self, url=None, **kwargs):
         '''
         Register a non geospatial dataset and its processor.

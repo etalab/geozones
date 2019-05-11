@@ -25,11 +25,22 @@ LYON_DISTRICTS = ['fr:commune:6938{0}@{1}'.format(i, COMMUNES_START) for i in ra
 CONTOURS_ETALAB = ('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/'
                    '{year}/geojson/{level}-{precision}.geojson.gz')
 
+DECOUPAGE_ETALAB = 'https://github.com/etalab/decoupage-administratif/releases/download/{release}/{name}.json'
+OPENFLA = 'http://osm13.openstreetmap.fr/~cquest/openfla/export/{name}-shp.zip'
+
 WIKIDATA_FLAG_OF_FRANCE = 'http://commons.wikimedia.org/wiki/Special:FilePath/Flag%20of%20France.svg'
 
 
 def contours_etalab(year, level, precision):
     return CONTOURS_ETALAB.format(**locals())
+
+
+def decoupage_etalab(release, name):
+    return DECOUPAGE_ETALAB.format(**locals())
+
+
+def openfla(name):
+    return OPENFLA.format(**locals())
 
 
 def departements_metropole(db, at=TODAY):

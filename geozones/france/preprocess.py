@@ -1,5 +1,5 @@
 from ..tools import success, progress
-from .model import departement, epci, commune, collectivite, region, COMMUNES_START
+from .model import departement, epci, commune, collectivite, region, COMMUNES_START, decoupage_etalab
 
 GEOHISTO_EOT = '9999-12-31'
 GEOHISTO_BASE = 'https://github.com/etalab/geohisto/raw/master/'
@@ -43,7 +43,7 @@ def _successors(row, pivots):
     return [histo_id(comp['pole'])] if comp else []
 
 
-@commune.preprocessor('https://github.com/etalab/decoupage-administratif/releases/download/v0.5.0/historique-communes.json')
+@commune.preprocessor(decoupage_etalab('v0.5.0', 'historique-communes'))
 def load_communes_history(db, data):
     '''Load french communes from history'''
     rows = list(data)
@@ -98,7 +98,9 @@ def load_departements(db, data):
 def load_collectivites(db, data):
     '''Load collectivites from GeoHisto.'''
     count = db.safe_bulk_insert({
-        '_id': '{0}:{1}@{2}'.format(collectivite.id, row['insee_code'].lower(), geohisto_datetime(row['start_datetime'])),
+        '_id': '{0}:{1}@{2}'.format(collectivite.id,
+                                    row['insee_code'].lower(),
+                                    geohisto_datetime(row['start_datetime'])),
         'code': row['insee_code'].lower(),
         'level': collectivite.id,
         'name': row['name'],
@@ -146,7 +148,8 @@ def load_regions(db, data):
     success('Loaded {} french region(s)', count)
 
 
-@epci.preprocessor('https://static.data.gouv.fr/resources/liste-et-historique-des-epci-a-fiscalite-propre/20190430-114320/historique-epcis.json')
+@epci.preprocessor('https://static.data.gouv.fr/resources/liste-et-historique-des-epci-a-fiscalite-propre/'
+                   '20190430-114320/historique-epcis.json')
 def load_epcis_history(db, data):
     '''Load EPCIs history'''
     count = db.safe_bulk_insert({

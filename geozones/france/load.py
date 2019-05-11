@@ -2,10 +2,10 @@ from ..tools import convert_from, warning
 from ..wiki import wikipedia_to_dbpedia
 
 from .model import canton, collectivite, departement, region, arrondissement, commune, epci, iris
-from .model import contours_etalab, COMMUNES_START
+from .model import contours_etalab, COMMUNES_START, openfla
 
 
-@arrondissement.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
+@arrondissement.extractor(openfla('arrondissements-20131220-100m'))
 def extract_french_district(db, polygon):
     '''
     Extract a french district informations from a MultiPolygon.
@@ -27,7 +27,7 @@ def extract_french_district(db, polygon):
     }
 
 
-@collectivite.extractor('http://thematicmapping.org/downloads/TM_WORLD_BORDERS-0.3.zip')  # NOQA
+@collectivite.extractor('http://thematicmapping.org/downloads/TM_WORLD_BORDERS-0.3.zip')
 def extract_overseas_collectivities(db, polygon):
     '''
     Extract overseas collectivities from their WorldBorder country.
@@ -56,7 +56,8 @@ def extract_overseas_collectivities(db, polygon):
         }
 
 
-@departement.extractor('https://www.data.gouv.fr/s/resources/contours-des-departements-francais-issus-d-openstreetmap/20170614-200948/departements-20170102-simplified.zip')  # NOQA
+@departement.extractor('https://www.data.gouv.fr/s/resources/contours-des-departements-francais-issus-d-openstreetmap/'
+                       '20170614-200948/departements-20170102-simplified.zip')
 def extract_2017_french_departement(db, polygon):
     '''
     Extract a french departement informations from a MultiPolygon.
@@ -83,13 +84,13 @@ def extract_2018_french_departements(db, polygon):
 
 
 @departement.extractor(contours_etalab(2019, 'departements', '100m'),
-                  filename='departements-100m-2019.geojson.gz')
+                       filename='departements-100m-2019.geojson.gz')
 def extract_2019_french_departements(db, polygon):
     props = polygon['properties']
     return db.zone(departement.id, props['code'].lower(), '2019-01-01')
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20140306-100m-shp.zip')  # NOQA
+@region.extractor(openfla('regions-20140306-100m'))
 def extract_2014_french_region(db, polygon):
     '''
     Extract a french region informations from a MultiPolygon.
@@ -106,7 +107,7 @@ def extract_2014_french_region(db, polygon):
     return zone
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20161121-shp.zip', simplify=0.01)  # NOQA
+@region.extractor(openfla('regions-20161121'), simplify=0.01)
 def extract_2016_french_region(db, polygon):
     '''
     Extract new french region informations from a MultiPolygon.
@@ -123,7 +124,7 @@ def extract_2016_french_region(db, polygon):
     return zone
 
 
-@region.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/regions-20170102-shp.zip', simplify=0.01)  # NOQA
+@region.extractor(openfla('regions-20170102'), simplify=0.01)
 def extract_2017_french_region(db, polygon):
     '''
     Extract new french region informations from a MultiPolygon.
@@ -154,7 +155,7 @@ def extract_2019_french_regions(db, polygon):
     return db.zone(region.id, props['code'], '2019-01-01')
 
 
-@commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20131220-100m-shp.zip')  # NOQA
+@commune.extractor(openfla('communes-20131220-100m'))
 def extract_2014_french_commune(db, polygon):
     '''
     Extract a french town informations from a MultiPolygon.
@@ -171,7 +172,7 @@ def extract_2014_french_commune(db, polygon):
     return zone
 
 
-@commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20150101-100m-shp.zip')  # NOQA
+@commune.extractor(openfla('communes-20150101-100m'))
 def extract_2015_french_commune(db, polygon):
     '''
     Extract a french town informations from a MultiPolygon.
@@ -188,7 +189,7 @@ def extract_2015_french_commune(db, polygon):
     return zone
 
 
-@commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20160119-shp.zip', simplify=0.0005)  # NOQA
+@commune.extractor(openfla('communes-20160119'), simplify=0.0005)
 def extract_2016_french_commune(db, polygon):
     '''
     Extract a french town informations from a MultiPolygon.
@@ -205,7 +206,7 @@ def extract_2016_french_commune(db, polygon):
     return zone
 
 
-@commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/communes-20170111-shp.zip', simplify=0.0005)  # NOQA
+@commune.extractor(openfla('communes-20170111'), simplify=0.0005)
 def extract_2017_french_commune(db, polygon):
     '''
     Extract a french town informations from a MultiPolygon.
@@ -224,7 +225,7 @@ def extract_2017_french_commune(db, polygon):
     return zone
 
 
-@commune.extractor('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2018/geojson/communes-100m.geojson.gz',
+@commune.extractor(contours_etalab(2018, 'communes', '100m'),
                    filename='communes-100m-2018.geojson.gz')
 def extract_2018_french_commune(db, polygon):
     '''
@@ -240,7 +241,7 @@ def extract_2018_french_commune(db, polygon):
     return zone
 
 
-@commune.extractor('http://etalab-datasets.geo.data.gouv.fr/contours-administratifs/2019/geojson/communes-100m.geojson.gz',
+@commune.extractor(contours_etalab(2019, 'communes', '100m'),
                    filename='communes-100m-2019.geojson.gz')
 def extract_2019_french_commune(db, polygon):
     '''
@@ -256,7 +257,7 @@ def extract_2019_french_commune(db, polygon):
     return zone
 
 
-@commune.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-municipaux-20160128-shp.zip')  # NOQA
+@commune.extractor(openfla('arrondissements-municipaux-20160128'))
 def extract_french_arrondissements(db, polygon):
     '''
     Extract a french arrondissements informations from a MultiPolygon.
@@ -292,7 +293,7 @@ def extract_2019_french_epcis(db, polygon):
     return db.zone(epci.id, props['code'], '2019-01-01')
 
 
-@canton.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/cantons-2015-shp.zip', simplify=0.005)  # NOQA
+@canton.extractor(openfla('cantons-2015'), simplify=0.005)
 def extract_french_canton(db, polygon):
     '''
     Extract a french canton informations from a MultiPolygon.
@@ -320,7 +321,8 @@ def extract_french_canton(db, polygon):
     }
 
 
-@iris.extractor('https://www.data.gouv.fr/s/resources/contour-des-iris-insee-tout-en-un/20150428-161348/iris-2013-01-01.zip')  # NOQA
+@iris.extractor('https://www.data.gouv.fr/s/resources/contour-des-iris-insee-tout-en-un/'
+                '20150428-161348/iris-2013-01-01.zip')
 def extract_iris(db, polygon):
     '''
     Extract French IrisBased on data from:

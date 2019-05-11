@@ -62,8 +62,7 @@ def ne_prop(props, key, cast=str):
         return cast(value)
 
 
-
-@country.extractor(NE_URL, encoding='utf-8')  # NOQA
+@country.extractor(NE_URL, encoding='utf-8')
 def extract_country(db, polygon):
     '''
     Extract a country information from single MultiPolygon.
@@ -91,7 +90,8 @@ def extract_country(db, polygon):
     }
 
 
-@country.extractor('https://github.com/apihackers/geo-countries-simplified/releases/download/2019-05-06/countries.geojson')
+@country.extractor('https://github.com/apihackers/geo-countries-simplified/releases/download/'
+                   '2019-05-06/countries.geojson')
 def extract_countries(db, polygon):
     '''
     Use cleaner shapes from Datahub geo countries: https://datahub.io/core/geo-countries
