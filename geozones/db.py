@@ -85,41 +85,6 @@ class DB(Collection):
         query.update(level=level, **kwargs)
         return self.find(query)
 
-    def fetch_zones(self, level, code=None, before=None, after=None):
-        """
-        Retrieve zones for a given level and code before/after a date
-        including that date.
-
-        The `before` and `after` dates must be strings like `YYYY-MM-DD`.
-        They are mutually exclusive.
-        """
-        if before:
-            end = {'$lte': before}
-        elif after:
-            end = {'$gte': after}
-        else:
-            raise ValueError('You must set the "before" or "after" parameters')
-        conditions = {
-            'level': level,
-            'validity.end': end,
-        }
-        if code:
-            conditions['code'] = code
-        return self.find(conditions)
-
-    def fetch_zone(self, level, code=None, before=None, after=None):
-        """
-        Retrieve the latest zone for a given level and code before/after a date
-        including that date.
-
-        The `before` and `after` dates must be a strings like `YYYY-MM-DD`.
-        They are mutually exclusive.
-        """
-        zone = list(self.fetch_zones(level, code, before, after)
-                        .sort('-validity.start')
-                        .limit(1))
-        return zone and zone[0] or None
-
     def aggregate_with_progress(self, pipeline, msg=None):
         '''
         Iter over the result of an aggregation and display a progress bar.
