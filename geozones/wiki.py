@@ -7,8 +7,7 @@ import itertools
 
 from urllib.parse import quote, unquote
 
-import requests
-
+from . import http
 from .tools import error
 
 RE_WIKIPEDIA = re.compile(r'https?://(?P<namespace>\w+)?\.?wikipedia\.org/wiki/(?P<path>.+)$')
@@ -96,10 +95,8 @@ def data_sparql_query(query, graph='http://fr.dbpedia.org'):
     }
 
     try:
-        response = requests.post(WIKIDATA_SPARQL,
-                                 data=parameters,
-                                 headers=headers)
-    except requests.exceptions.ReadTimeout:
+        response = http.post(WIKIDATA_SPARQL, data=parameters, headers=headers)
+    except http.ReadTimeout:
         error('Timeout:', WIKIDATA_SPARQL, parameters)
         return []
     try:

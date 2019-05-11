@@ -1,8 +1,7 @@
 import os
 import tarfile
 
-import requests
-
+from . import http
 from .tools import info, success, unicodify, progress
 
 WIKIMEDIA_COMMONS_URL = 'https://commons.wikimedia.org/wiki/Special:FilePath/'
@@ -49,7 +48,7 @@ def fetch_logos(zones, dist_dir):
             continue
 
         url = WIKIMEDIA_COMMONS_URL + unicodify(filename)
-        r = requests.get(url, stream=True, headers=HEADERS)
+        r = http.get(url, stream=True, headers=HEADERS)
         if r.status_code != 200:
             logfile.write('{0} : {1}\n'.format(url, r.status_code))
             logfile.flush()

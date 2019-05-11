@@ -7,8 +7,8 @@ import textwrap
 
 import click
 import msgpack
-import requests
 
+from . import http
 from .db import DB
 from .logos import fetch_logos, compress_logos
 from .model import root
@@ -74,11 +74,11 @@ def cli(ctx, drop, level, exclude, mongo, home):
 
 def _download(url, dest):
     # Streaming, so we can iterate over the response.
-    response = requests.get(url, stream=True)
+    response = http.get(url, stream=True)
 
     try:
         response.raise_for_status()
-    except requests.HTTPError:
+    except http.HTTPError:
         error('Download failed with {0}: {1}', response.status_code, response.reason)
         return
 
