@@ -5,6 +5,8 @@ import re
 import json
 import itertools
 
+from urllib.parse import quote, unquote
+
 import requests
 
 from .tools import error
@@ -15,6 +17,8 @@ RE_MEDIA_COMMONS = re.compile(r'https?://commons\.wikimedia\.org/wiki/Special:Fi
 
 WIKIDATA_SPARQL = 'https://query.wikidata.org/sparql'
 WD = 'http://www.wikidata.org/entity/'
+SAFE_CHARS = '!$()*,-./:;@_' # See: https://www.mediawiki.org/wiki/Manual:PAGENAMEE_encoding
+
 
 
 def wikipedia_to_dbpedia(uri):
@@ -69,7 +73,8 @@ def media_url_to_path(url):
     '''Extract path from a wikimedia commons URL'''
     if not url:
         return
-    return RE_MEDIA_COMMONS.sub('\g<path>', url)
+    path = RE_MEDIA_COMMONS.sub('\g<path>', url)
+    return quote(unquote(path).replace(' ', '_'), safe=SAFE_CHARS)
 
 
 def data_uri_to_id(uri):
