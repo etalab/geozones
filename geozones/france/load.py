@@ -2,7 +2,7 @@ from ..tools import convert_from, warning
 from ..wiki import wikipedia_to_dbpedia
 
 from .model import canton, collectivite, departement, region, arrondissement, commune, epci, iris
-from .model import contours_etalab
+from .model import contours_etalab, COMMUNES_START
 
 
 @arrondissement.extractor('http://osm13.openstreetmap.fr/~cquest/openfla/export/arrondissements-20131220-100m-shp.zip')  # NOQA
@@ -275,7 +275,7 @@ def extract_french_arrondissements(db, polygon):
         'dbpedia': wikipedia_to_dbpedia(props['wikipedia']),
         'area': int(props['surf_ha']) * .01,
         'keys': {'insee': props['insee']},
-        'validity': {'start': '1942-01-01'},
+        'validity': {'start': COMMUNES_START},
     }
 
 @epci.extractor(contours_etalab(2018, 'epci', '100m'),
