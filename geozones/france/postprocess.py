@@ -1,6 +1,7 @@
 from collections import Counter
 
 from .. import wiki
+from ..model import country_subset
 from ..tools import info, success, warning, error, progress
 from ..tools import aggregate_multipolygons, geom_to_multipolygon, chunker
 
@@ -13,6 +14,63 @@ from .model import COMMUNES_START
 WARNING:
     In this file, order matters. First declared is first processed (by level)
 '''
+
+
+COUNTRY_SUBSETS_SPARQL = '''
+SELECT DISTINCT ?subset ?subsetLabel ?population ?area ?siren ?geonames ?flag
+                ?blazon ?logo ?site ?wikipedia ?osm
+WHERE {
+  VALUES ?subset { {ids} }
+  OPTIONAL {?subset wdt:P1566 ?geonames.}
+  OPTIONAL {?subset wdt:P1616 ?siren.}
+  OPTIONAL {?subset wdt:P2046 ?area.}
+  OPTIONAL {?subset wdt:P1082 ?population.}
+  OPTIONAL {?subset wdt:P41 ?flag. FILTER (?flag != <http://commons.wikimedia.org/wiki/Special:FilePath/Flag%20of%20France.svg>)}
+  OPTIONAL {?subset wdt:P94 ?blazon.}
+  OPTIONAL {?subset wdt:P154 ?logo.}
+  OPTIONAL {?subset wdt:P856 ?site.}
+  OPTIONAL {?subset wdt:P402 ?osm.}
+
+  OPTIONAL {
+    ?wikipedia schema:about ?subset;
+               schema:inLanguage 'fr';
+               schema:isPartOf <https://fr.wikipedia.org/>.
+  }
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language 'fr'. }
+}
+'''
+
+
+@country_subset.postprocessor()
+def fetch_french_country_subset_wikidata_metadata(db):
+    info('Fetching french country subsets wikidata metadata')
+    subsets = list(db.level(country_subset.id, code={'$regex': 'fr:.+'}, wikidata={'$exists': True}))
+    ids = {subset['wikidata']: subset['_id'] for subset in subsets}
+
+    wdids = ' '.join(f'wd:{id}' for id in ids.keys())
+    query = COUNTRY_SUBSETS_SPARQL.replace('{ids}', wdids)
+    results = wiki.data_sparql_query(query)
+    results = wiki.data_reduce_result(results, 'subset')
+
+    for row in results:
+        uri = row['subset']
+        wdid = wiki.data_uri_to_id(uri)
+        zone_id = ids.get(wdid)
+        if zone_id:
+            db.find_one_and_update({'_id': zone_id}, {
+                '$set': {k: v for k, v in {
+                    'wikidata': wdid,
+                    'wikipedia': wiki.wikipedia_url_to_id(row['wikipedia']),
+                    'dbpedia': wiki.wikipedia_to_dbpedia(row['wikipedia']),
+                    'website': row.get('site'),
+                    'flag': wiki.media_url_to_path(row.get('flag')),
+                    'area': float(row.get('area', 0)) or None,
+                    'population': int(row.get('population', 0)) or None,
+                    'keys.osm': row.get('osm'),
+                    'keys.geonames': row.get('geonames'),
+                }.items() if v is not None}
+            })
 
 
 @commune.postprocessor('https://unpkg.com/codes-postaux@3.2.0/codes-postaux-full.json')
