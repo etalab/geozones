@@ -1,4 +1,5 @@
 import csv
+import fnmatch
 import inspect
 import io
 
@@ -149,3 +150,8 @@ def chunker(iterator, size):
         if not chunk:
             return
         yield chunk
+
+
+def match_patterns(text, patterns):
+    '''Match a string against multiple glog-style patterns'''
+    return any(fnmatch.fnmatch(text, p) for p in patterns)

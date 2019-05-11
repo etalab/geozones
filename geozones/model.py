@@ -10,7 +10,7 @@ from shapely.validation import explain_validity
 
 from .loaders import load
 from .tools import warning, error, info, success, progress
-from .tools import aggregate_multipolygons
+from .tools import aggregate_multipolygons, match_patterns
 
 
 class Level(object):
@@ -31,6 +31,10 @@ class Level(object):
         self.aggregates = []
         for parent in parents:
             parent.children.append(self)
+
+    def __str__(self):
+        return self.id
+
 
     def preprocessor(self, url=None, **kwargs):
         '''
@@ -110,7 +114,7 @@ class Level(object):
         for url, extractor in self.extractors:
             if only is not None and extractor.__name__ != only:
                 continue
-            if exclude is not None and extractor.__name__ == exclude:
+            if match_patterns(extractor.__name__, exclude):
                 continue
             loaded += self.process_dataset(workdir, db, url, extractor)
         success('Loaded {0} zones for level {1}', loaded, self.id)
@@ -263,7 +267,7 @@ class Level(object):
         for url, processor in lst:
             if only is not None and processor.__name__ != only:
                 continue
-            if exclude is not None and processor.__name__ == exclude:
+            if match_patterns(processor.__name__, exclude):
                 continue
             if url:
                 filename = self.filename_for(url, processor)

@@ -10,6 +10,8 @@ collectivite = Level('fr:collectivite', _('French overseas collectivities'),
                      60, region)
 arrondissement = Level('fr:arrondissement', _('French arrondissement'), 70, departement)
 commune = Level('fr:commune', _('French town'), 80, arrondissement, epci)
+# commune_deleguee = Level('fr:commune:deleguee', _('French delegated town'), 85, commune)
+# commune_associee = Level('fr:commune:associee', _('French associated town'), 85, commune)
 canton = Level('fr:canton', _('French canton'), 98, departement)
 iris = Level('fr:iris', _('Iris (Insee districts)'), 98, commune)
 

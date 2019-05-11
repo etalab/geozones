@@ -12,7 +12,7 @@ import requests
 from .db import DB
 from .logos import fetch_logos, compress_logos
 from .model import root
-from .tools import info, success, title, ok, error, section, _secho, progress
+from .tools import info, success, title, ok, error, section, _secho, progress, match_patterns
 from . import geojson
 
 # Importing levels modules in order (international first)
@@ -55,8 +55,9 @@ def cli(ctx, drop, level, exclude, mongo, home):
 
     levels = []
     for l in root.traverse():
-        should_process = (not level or l.id in level) and l.id not in exclude
-        if should_process and l not in levels:
+        is_included = not level or match_patterns(l.id, level)
+        is_excluded = match_patterns(l.id, exclude)
+        if is_included and not is_excluded and l not in levels:
             levels.append(l)
 
     ctx.obj['levels'] = levels
@@ -128,8 +129,8 @@ def sourceslist(ctx):
 
 @cli.command()
 @click.pass_context
-@click.option('-o', '--only', default=None)
-@click.option('-e', '--exclude', default=None)
+@click.option('-o', '--only', default=None, help='Only execute a given function')
+@click.option('-e', '--exclude', multiple=True, help='Exclude some functions')
 def preprocess(ctx, only, exclude):
     '''
     Perform pre-processing.
@@ -149,8 +150,8 @@ def preprocess(ctx, only, exclude):
 
 @cli.command()
 @click.pass_context
-@click.option('-o', '--only', default=None)
-@click.option('-e', '--exclude', default=None)
+@click.option('-o', '--only', default=None, help='Only execute a given function')
+@click.option('-e', '--exclude', multiple=True, help='Exclude some functions')
 def load(ctx, only, exclude):
     '''
     Load zones from a folder of zip files containing shapefiles
@@ -191,8 +192,8 @@ def aggregate(ctx):
 
 @cli.command()
 @click.pass_context
-@click.option('-o', '--only', default=None)
-@click.option('-e', '--exclude', default=None)
+@click.option('-o', '--only', default=None, help='Only execute a given function')
+@click.option('-e', '--exclude', multiple=True, help='Exclude some functions')
 def postprocess(ctx, only, exclude):
     '''
     Perform post-processing.
