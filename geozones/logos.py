@@ -13,7 +13,7 @@ USER_AGENT = 'geozones/1.0 (https://github.com/etalab/geozones)'
 HEADERS = {'user-agent': USER_AGENT}
 
 
-def fetch_logos(zones, dist_dir):
+def fetch_logos(zones, dist_dir, batch_size=50):
     """
     Fetch logos (logos or flags or blazons) from `zones`.
 
@@ -35,7 +35,7 @@ def fetch_logos(zones, dist_dir):
         {'logo': {'$exists':  True}}
     ]}
     count = zones.count(query)
-    cursor = zones.find(query, no_cursor_timeout=True)
+    cursor = zones.find(query, no_cursor_timeout=True).batch_size(batch_size)
     for zone in progress(cursor, length=count):
         filename = zone.get('flag', zone.get('blazon', zone.get('logo')))
         if not filename:
