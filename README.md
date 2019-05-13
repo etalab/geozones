@@ -126,6 +126,7 @@ The following properties are exported in the GeoJSON output:
 | parents    | A list of every known parent zone identifier                |
 | ancestors  | A list of ancestors _(optional)_                            |
 | successors | A list of successors  _(optional)_                          |
+| validity   | A date range validity (`start`/`end`)  _(optional)_         |
 
 > Note that you can choose via the keys option which properties you would like to export during the `dist`ribution step.
 
