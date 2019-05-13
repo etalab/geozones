@@ -218,13 +218,14 @@ def postprocess(ctx, only, exclude):
 
 @cli.command()
 @click.pass_context
+@click.argument('name', default='geozones')
 @click.option('-p', '--pretty', is_flag=True)
 @click.option('-s', '--split', is_flag=True)
 @click.option('-c/-nc', '--compress/--no-compress', default=True)
 @click.option('-r', '--serialization', default='json',
               type=click.Choice(['json', 'msgpack']))
 @click.option('-k', '--keys', default=None)
-def dist(ctx, pretty, split, compress, serialization, keys):
+def dist(ctx, name, pretty, split, compress, serialization, keys):
     '''Dump a distributable file'''
     keys = keys and keys.split(',')
     title('Dumping data to {serialization} with keys {keys}'.format(
@@ -295,8 +296,8 @@ def dist(ctx, pretty, split, compress, serialization, keys):
             with tarfile.open(filename, 'w:xz') as txz:
                 txz.add(translations, 'translations')
 
-        filename = 'geozones{split}-{serialization}.tar.xz'.format(
-            split='-split' if split else '', serialization=serialization)
+        filename = '{name}{split}-{serialization}.tar.xz'.format(
+            name=name, split='-split' if split else '', serialization=serialization)
         with ok('Compressing to {0}'.format(filename)):
             with tarfile.open(filename, 'w:xz') as txz:
                 for name in filenames:
@@ -340,7 +341,7 @@ def logos(ctx, compress):
     zones = ctx.obj['db']
     fetch_logos(zones, DIST_DIR)
     if compress:
-        compress_logos(DL_DIR, DIST_DIR)
+        compress_logos(DIST_DIR)
 
 
 @cli.command()
