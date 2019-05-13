@@ -90,6 +90,15 @@ Currently geozones support the following levels:
 | `fr:canton`         | 98                   | Cantons of France              |
 | `fr:iris`           | 98                   | Iris of France                 |
 
+
+#### Luxembourguish levels
+
+| identifier          | administrative level | description                    |
+|---------------------|----------------------|--------------------------------|
+| `lu:district`       | 40                   | District of Luxembourg         |
+| `lu:canton`         | 60                   | Canton of France               |
+| `lu:commune`        | 80                   | Communes of France             |
+
 ### Zones
 
 A zone is a spatial polygon for a given level. It has at least one unique code (unique on its level) and a name. It can have many known keys, that are not necessarily unique (ie. postal codes can be shared by many towns).
@@ -108,12 +117,15 @@ The following properties are exported in the GeoJSON output:
 | name       | The zone display name (can be translatable)                 |
 | population | Estimated/approximative population _(optional)_             |
 | area       | Estimated/approximative area in km² _(optional)_            |
+| wikidata   | A Wikidata node identifier _(optional)_                     |
 | wikipedia  | A Wikipedia reference _(optional)_                          |
 | dbpedia    | A DBPedia reference _(optional)_                            |
 | flag       | A DBPedia reference to a flag _(optional)_                  |
 | blazon     | A DBPedia reference to a blazon _(optional)_                |
 | keys       | A dictionary of known keys/code for this zone               |
 | parents    | A list of every known parent zone identifier                |
+| ancestors  | A list of ancestors _(optional)_                            |
+| successors | A list of successors  _(optional)_                          |
 
 > Note that you can choose via the keys option which properties you would like to export during the `dist`ribution step.
 
