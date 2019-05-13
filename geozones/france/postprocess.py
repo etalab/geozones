@@ -6,7 +6,7 @@ from ..tools import info, success, warning, error, progress
 from ..tools import aggregate_multipolygons, geom_to_multipolygon, chunker
 
 from .model import canton, departement, epci, commune, arrondissement, iris, region, collectivite
-from .model import droms, departements_metropole
+from .model import droms, departements_metropole, decoupage_etalab
 from .model import PARIS_DISTRICTS, LYON_DISTRICTS, MARSEILLE_DISTRICTS, WIKIDATA_FLAG_OF_FRANCE
 from .model import COMMUNES_START
 
@@ -116,7 +116,7 @@ def _get_parent(db, level, row, field, date):
         error('Unable to find zone {0}:{1}@{2}', level.id, code, date)
 
 
-@commune.postprocessor('https://github.com/etalab/decoupage-administratif/releases/download/v0.5.0/communes.json')
+@commune.postprocessor(decoupage_etalab('v0.5.0', 'communes'))
 def attach_current_french_communes_parents(db, data):
     processed = 0
     now = '2019-01-01'
