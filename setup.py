@@ -7,7 +7,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
-        'Fiona==1.8.6',
+        'Fiona==1.8.13',
         'Flask==1.0.2',
         'Shapely==1.6.4.post2',
         'click==7.0',
